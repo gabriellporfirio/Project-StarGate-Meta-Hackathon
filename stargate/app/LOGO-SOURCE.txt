@@ -1,0 +1,5 @@
+logo-light.png: the logo mark (light version), copied from the planning
+repo at commit 79a6453c574f0f8ea507c016ad7fdb7957fae4af, file
+design/m6-mockup/logo-light.png. It is the only brand element, shown
+only in the platform header (M6 spec section 5). This note is not
+served to browsers.

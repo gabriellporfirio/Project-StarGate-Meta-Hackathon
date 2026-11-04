@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guided phone setup</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<header class="top">
+<img class="logo" src="/logo.png" width="28" height="28" alt="">
+<div class="titles">
+<span class="kicker">Old phone, new job</span>
+<h1>Guided phone setup</h1>
+</div>
+</header>
+<nav class="rail" aria-label="Steps">
+<ol id="rail-list">
+<li><button type="button" data-step="welcome">Welcome</button></li>
+<li><button type="button" data-step="connect">Connect</button></li>
+<li><button type="button" data-step="questions">Questions</button></li>
+<li><button type="button" data-step="phone">Your phone</button></li>
+<li><button type="button" data-step="services">Services</button></li>
+<li><button type="button" data-step="research">Research</button></li>
+<li><button type="button" data-step="build">Build</button></li>
+<li><button type="button" data-step="boot">Boot</button></li>
+<li><button type="button" data-step="done">Done</button></li>
+</ol>
+</nav>
+<main id="screen" tabindex="-1"></main>
+<noscript><p>This app needs JavaScript to run.</p></noscript>
+<footer class="foot">
+<span id="status-line" role="status" aria-live="polite">Starting up.</span>
+<button type="button" id="signout">Sign out</button>
+</footer>
+<script src="/app.js"></script>
+</body>
+</html>

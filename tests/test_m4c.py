@@ -81,6 +81,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class FakeCloud {
     static final class FakeNet implements NetworkLayer {
@@ -472,6 +473,26 @@ public class FakeCloud {
         }
         if (scene.equals("cancelclose")) {
             cancelClose();
+            return;
+        }
+        if (scene.equals("stallread")) {
+            stallRead();
+            return;
+        }
+        if (scene.equals("stallheaders")) {
+            stallHeaders();
+            return;
+        }
+        if (scene.equals("stallwrite")) {
+            stallWrite();
+            return;
+        }
+        if (scene.equals("stallgate")) {
+            stallGate();
+            return;
+        }
+        if (scene.equals("stillclosing")) {
+            stillClosing();
             return;
         }
         if (scene.equals("keyfail")) {
@@ -947,9 +968,10 @@ public class FakeCloud {
         ManualClock clock = new ManualClock();
         long deadline = clock.nowMs() + CloudSpec.TIMEOUT_MS;
         Trickle slow = new Trickle(clock, 20000L, 100);
+        FakeConn slowConn = new FakeConn();
         boolean threw = false;
         try {
-            HttpNetworkLayer.readUpTo(slow,
+            HttpNetworkLayer.readUpTo(slowConn, slow,
                     CloudSpec.REPLY_MAX_BYTES + 1, clock,
                     deadline);
         } catch (java.io.IOException timedOut) {
@@ -957,13 +979,17 @@ public class FakeCloud {
         }
         System.out.println("threw=" + threw);
         System.out.println("closed=" + slow.closed);
+        System.out.println("readto=" + slowConn.readTo);
         ManualClock fast = new ManualClock();
         long soon = fast.nowMs() + CloudSpec.TIMEOUT_MS;
         Trickle quick = new Trickle(fast, 1000L, 10);
-        byte[] got = HttpNetworkLayer.readUpTo(quick, 100,
-                fast, soon);
+        FakeConn fastConn = new FakeConn();
+        byte[] got = HttpNetworkLayer.readUpTo(fastConn,
+                quick, 100, fast, soon);
         System.out.println("got=" + got.length);
         System.out.println("fastclosed=" + quick.closed);
+        System.out.println(
+                "fastreadto=" + fastConn.readTo);
     }
 
     static void lateWait() throws Exception {
@@ -1049,6 +1075,471 @@ public class FakeCloud {
                 "SYS", "Q2?", keys, fast, new ManualClock(),
                 new RecSleeper(), second);
         System.out.println("second=" + second.event);
+    }
+
+    static java.net.ServerSocket loopbackServer()
+            throws java.io.IOException {
+        for (int i = 0; i < 10; i++) {
+            java.net.ServerSocket server =
+                    new java.net.ServerSocket(0, 8,
+                            java.net.InetAddress.getByName(
+                                    "127.0.0.1"));
+            int port = server.getLocalPort();
+            if (port != 8765 && port != 8080) {
+                return server;
+            }
+            server.close();
+        }
+        throw new java.io.IOException("no clean port");
+    }
+
+    static void eatRequest(java.net.Socket s)
+            throws java.io.IOException {
+        java.io.InputStream in = s.getInputStream();
+        java.io.ByteArrayOutputStream head =
+                new java.io.ByteArrayOutputStream();
+        int last4 = 0;
+        while (true) {
+            int b = in.read();
+            if (b < 0) {
+                return;
+            }
+            head.write(b);
+            last4 = (last4 << 8) | b;
+            if (last4 == 0x0D0A0D0A) {
+                break;
+            }
+        }
+        String headers =
+                new String(head.toByteArray(), "UTF-8");
+        int contentLen = 0;
+        for (String line : headers.split("\\r\\n")) {
+            if (line.toLowerCase().startsWith(
+                    "content-length:")) {
+                contentLen = Integer.parseInt(
+                        line.substring(15).trim());
+            }
+        }
+        for (int i = 0; i < contentLen; i++) {
+            if (in.read() < 0) {
+                break;
+            }
+        }
+    }
+
+    static void stallRead() throws Exception {
+        final java.net.ServerSocket server =
+                loopbackServer();
+        final int port = server.getLocalPort();
+        final long budgetMs = 2000;
+        final boolean[] sawClose = new boolean[1];
+        Thread srv = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    java.net.Socket first =
+                            server.accept();
+                    eatRequest(first);
+                    Thread.sleep(budgetMs - 100);
+                    java.io.OutputStream w =
+                            first.getOutputStream();
+                    String head = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: 100\\r\\n"
+                            + "Connection: close\\r\\n\\r\\n{";
+                    w.write(head.getBytes("UTF-8"));
+                    w.flush();
+                    first.setSoTimeout(15000);
+                    try {
+                        int end = first.getInputStream()
+                                .read();
+                        sawClose[0] = (end < 0);
+                    } catch (java.io.IOException early) {
+                        sawClose[0] = false;
+                    }
+                    first.close();
+                    java.net.Socket second =
+                            server.accept();
+                    eatRequest(second);
+                    java.io.OutputStream w2 =
+                            second.getOutputStream();
+                    String body =
+                            reply("Hi", "stop", false);
+                    byte[] raw = body.getBytes("UTF-8");
+                    String head2 = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: "
+                            + raw.length
+                            + "\\r\\nConnection: close"
+                            + "\\r\\n\\r\\n";
+                    w2.write(head2.getBytes("UTF-8"));
+                    w2.write(raw);
+                    w2.flush();
+                    second.close();
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        srv.setDaemon(true);
+        srv.start();
+        CloudRequest.WireRequest req = CloudRequest.build(
+                CloudSpec.META, "DUMMY-META-KEY",
+                "muse-spark-1.3", "SYS", "Q?", 4096);
+        HttpNetworkLayer layer = new HttpNetworkLayer();
+        java.net.URL url = new java.net.URL(
+                "http://127.0.0.1:" + port
+                + "/v1/chat/completions");
+        long t0 = System.nanoTime();
+        boolean threw = false;
+        String thrown = "";
+        try {
+            layer.sendTo(req, (int) budgetMs, url);
+        } catch (java.io.IOException failed) {
+            threw = true;
+            thrown = failed.getClass().getSimpleName();
+        }
+        long tookMs = (System.nanoTime() - t0) / 1000000L;
+        System.out.println("threw=" + threw + "|" + thrown);
+        System.out.println("tookMs=" + tookMs);
+        System.out.println("closing1="
+                + HttpNetworkLayer.closingCount());
+        settleAndSecond(req, layer, url);
+        srv.join(25000);
+        System.out.println("sawclose=" + sawClose[0]);
+        System.out.println("port=" + port);
+        server.close();
+    }
+
+    static void stallHeaders() throws Exception {
+        final java.net.ServerSocket server =
+                loopbackServer();
+        final int port = server.getLocalPort();
+        final long budgetMs = 2000;
+        final boolean[] sawClose = new boolean[1];
+        Thread srv = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    java.net.Socket first =
+                            server.accept();
+                    eatRequest(first);
+                    first.setSoTimeout(15000);
+                    try {
+                        int end = first.getInputStream()
+                                .read();
+                        sawClose[0] = (end < 0);
+                    } catch (java.io.IOException early) {
+                        sawClose[0] = false;
+                    }
+                    first.close();
+                    java.net.Socket second =
+                            server.accept();
+                    eatRequest(second);
+                    java.io.OutputStream w2 =
+                            second.getOutputStream();
+                    String body =
+                            reply("Hi", "stop", false);
+                    byte[] raw = body.getBytes("UTF-8");
+                    String head2 = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: "
+                            + raw.length
+                            + "\\r\\nConnection: close"
+                            + "\\r\\n\\r\\n";
+                    w2.write(head2.getBytes("UTF-8"));
+                    w2.write(raw);
+                    w2.flush();
+                    second.close();
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        srv.setDaemon(true);
+        srv.start();
+        CloudRequest.WireRequest req = CloudRequest.build(
+                CloudSpec.META, "DUMMY-META-KEY",
+                "muse-spark-1.3", "SYS", "Q?", 4096);
+        HttpNetworkLayer layer = new HttpNetworkLayer();
+        java.net.URL url = new java.net.URL(
+                "http://127.0.0.1:" + port
+                + "/v1/chat/completions");
+        long t0 = System.nanoTime();
+        boolean threw = false;
+        String thrown = "";
+        try {
+            layer.sendTo(req, (int) budgetMs, url);
+        } catch (java.io.IOException failed) {
+            threw = true;
+            thrown = failed.getClass().getSimpleName();
+        }
+        long tookMs = (System.nanoTime() - t0) / 1000000L;
+        System.out.println("threw=" + threw + "|" + thrown);
+        System.out.println("tookMs=" + tookMs);
+        System.out.println("closing1="
+                + HttpNetworkLayer.closingCount());
+        settleAndSecond(req, layer, url);
+        srv.join(25000);
+        System.out.println("sawclose=" + sawClose[0]);
+        System.out.println("port=" + port);
+        server.close();
+    }
+
+    static void waitQuiescent(long budgetMs)
+            throws Exception {
+        long end = System.nanoTime()
+                + budgetMs * 1000000L;
+        while (HttpNetworkLayer.closingCount() > 0) {
+            if (System.nanoTime() >= end) {
+                throw new java.io.IOException(
+                        "worker never exited");
+            }
+            Thread.sleep(50);
+        }
+    }
+
+    static void settleAndSecond(
+            CloudRequest.WireRequest req,
+            HttpNetworkLayer layer, java.net.URL url)
+            throws Exception {
+        try {
+            long t1 = System.nanoTime();
+            NetworkLayer.Response fast =
+                    layer.sendTo(req, 10000, url);
+            long took2Ms =
+                    (System.nanoTime() - t1) / 1000000L;
+            System.out.println("gate1=allowed");
+            System.out.println("second=" + fast.status + "|"
+                    + fast.body.contains("Hi"));
+            System.out.println("took2Ms=" + took2Ms);
+        } catch (java.io.IOException busy) {
+            if (!HttpNetworkLayer.STILL_CLOSING.equals(
+                    busy.getMessage())) {
+                throw busy;
+            }
+            System.out.println("gate1=rejected|"
+                    + busy.getMessage());
+            long w0 = System.nanoTime();
+            waitQuiescent(15000);
+            long closedMs =
+                    (System.nanoTime() - w0) / 1000000L;
+            System.out.println("closedMs=" + closedMs);
+            long t1 = System.nanoTime();
+            NetworkLayer.Response fast =
+                    layer.sendTo(req, 10000, url);
+            long took2Ms =
+                    (System.nanoTime() - t1) / 1000000L;
+            System.out.println("second=" + fast.status + "|"
+                    + fast.body.contains("Hi"));
+            System.out.println("took2Ms=" + took2Ms);
+        }
+    }
+
+    static void stallWrite() throws Exception {
+        final java.net.ServerSocket server =
+                loopbackServer();
+        final int port = server.getLocalPort();
+        final long budgetMs = 2000;
+        Thread srv = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    java.net.Socket first =
+                            server.accept();
+                    // Never read: the client's request-body
+                    // write must stall once the buffers fill.
+                    // A socket write has no timeout, so only
+                    // the caller's deadline can stop it.
+                    Thread.sleep(4000);
+                    first.close();
+                    java.net.Socket second =
+                            server.accept();
+                    eatRequest(second);
+                    java.io.OutputStream w2 =
+                            second.getOutputStream();
+                    String body =
+                            reply("Hi", "stop", false);
+                    byte[] raw = body.getBytes("UTF-8");
+                    String head2 = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: "
+                            + raw.length
+                            + "\\r\\nConnection: close"
+                            + "\\r\\n\\r\\n";
+                    w2.write(head2.getBytes("UTF-8"));
+                    w2.write(raw);
+                    w2.flush();
+                    second.close();
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        srv.setDaemon(true);
+        srv.start();
+        StringBuilder big = new StringBuilder();
+        for (int i = 0; i < 16 * 1024 * 1024; i++) {
+            big.append('x');
+        }
+        HttpNetworkLayer layer = new HttpNetworkLayer();
+        java.net.URL url = new java.net.URL(
+                "http://127.0.0.1:" + port
+                + "/v1/chat/completions");
+        long t0 = System.nanoTime();
+        boolean threw = false;
+        String thrown = "";
+        try {
+            layer.sendBody(big.toString(),
+                    "Bearer DUMMY-META-KEY",
+                    (int) budgetMs, url);
+        } catch (java.io.IOException failed) {
+            threw = true;
+            thrown = failed.getClass().getSimpleName();
+        }
+        long tookMs = (System.nanoTime() - t0) / 1000000L;
+        System.out.println("threw=" + threw + "|" + thrown);
+        System.out.println("tookMs=" + tookMs);
+        System.out.println("closing1="
+                + HttpNetworkLayer.closingCount());
+        CloudRequest.WireRequest req = CloudRequest.build(
+                CloudSpec.META, "DUMMY-META-KEY",
+                "muse-spark-1.3", "SYS", "Q?", 4096);
+        settleAndSecond(req, layer, url);
+        srv.join(25000);
+        System.out.println("port=" + port);
+        server.close();
+    }
+
+    static void stallGate() throws Exception {
+        final java.net.ServerSocket server =
+                loopbackServer();
+        final int port = server.getLocalPort();
+        final long budgetMs = 5000;
+        final boolean[] sawClose = new boolean[1];
+        Thread srv = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    java.net.Socket first =
+                            server.accept();
+                    eatRequest(first);
+                    java.io.OutputStream w =
+                            first.getOutputStream();
+                    String head = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: 100\\r\\n"
+                            + "Connection: close\\r\\n\\r\\n{";
+                    w.write(head.getBytes("UTF-8"));
+                    w.flush();
+                    first.setSoTimeout(15000);
+                    try {
+                        int end = first.getInputStream()
+                                .read();
+                        sawClose[0] = (end < 0);
+                    } catch (java.io.IOException early) {
+                        sawClose[0] = false;
+                    }
+                    first.close();
+                    java.net.Socket second =
+                            server.accept();
+                    eatRequest(second);
+                    java.io.OutputStream w2 =
+                            second.getOutputStream();
+                    String body =
+                            reply("Hi", "stop", false);
+                    byte[] raw = body.getBytes("UTF-8");
+                    String head2 = "HTTP/1.1 200 OK\\r\\n"
+                            + "Content-Type: application/json"
+                            + "\\r\\nContent-Length: "
+                            + raw.length
+                            + "\\r\\nConnection: close"
+                            + "\\r\\n\\r\\n";
+                    w2.write(head2.getBytes("UTF-8"));
+                    w2.write(raw);
+                    w2.flush();
+                    second.close();
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        srv.setDaemon(true);
+        srv.start();
+        final CloudRequest.WireRequest req =
+                CloudRequest.build(CloudSpec.META,
+                        "DUMMY-META-KEY", "muse-spark-1.3",
+                        "SYS", "Q?", 4096);
+        final HttpNetworkLayer layer = new HttpNetworkLayer();
+        final java.net.URL url = new java.net.URL(
+                "http://127.0.0.1:" + port
+                + "/v1/chat/completions");
+        final boolean[] threw = new boolean[1];
+        final String[] thrown = new String[1];
+        final long[] took = new long[1];
+        Thread caller = new Thread(new Runnable() {
+            public void run() {
+                long t0 = System.nanoTime();
+                try {
+                    layer.sendTo(req, (int) budgetMs, url);
+                    thrown[0] = "";
+                } catch (java.io.IOException failed) {
+                    threw[0] = true;
+                    thrown[0] =
+                            failed.getClass().getSimpleName();
+                }
+                took[0] = (System.nanoTime() - t0)
+                        / 1000000L;
+            }
+        });
+        caller.start();
+        Thread.sleep(500);
+        System.out.println("closingMid="
+                + HttpNetworkLayer.closingCount());
+        caller.interrupt();
+        caller.join(10000);
+        System.out.println("alive=" + caller.isAlive());
+        System.out.println(
+                "threw=" + threw[0] + "|" + thrown[0]);
+        System.out.println("tookMs=" + took[0]);
+        System.out.println("closing1="
+                + HttpNetworkLayer.closingCount());
+        try {
+            layer.sendTo(req, 10000, url);
+            System.out.println("gate1=allowed");
+        } catch (java.io.IOException busy) {
+            System.out.println("gate1=rejected|"
+                    + busy.getMessage());
+        }
+        long w0 = System.nanoTime();
+        waitQuiescent(15000);
+        long closedMs = (System.nanoTime() - w0) / 1000000L;
+        System.out.println("closedMs=" + closedMs);
+        long t1 = System.nanoTime();
+        NetworkLayer.Response fast =
+                layer.sendTo(req, 10000, url);
+        long took2Ms = (System.nanoTime() - t1) / 1000000L;
+        System.out.println("second=" + fast.status + "|"
+                + fast.body.contains("Hi"));
+        System.out.println("took2Ms=" + took2Ms);
+        srv.join(25000);
+        System.out.println("sawclose=" + sawClose[0]);
+        System.out.println("port=" + port);
+        server.close();
+    }
+
+    static void stillClosing() throws Exception {
+        KeyStorage.Memory keys = new KeyStorage.Memory();
+        keys.save(CloudSpec.META, "DUMMY-META-KEY");
+        final int[] count = new int[1];
+        NetworkLayer busy = new NetworkLayer() {
+            public Response send(
+                    CloudRequest.WireRequest req,
+                    int timeoutMs)
+                    throws java.io.IOException {
+                count[0]++;
+                throw new java.io.IOException(
+                        HttpNetworkLayer.STILL_CLOSING);
+            }
+        };
+        CloudCb cb = new CloudCb();
+        CloudAsk.ask(CloudSpec.META, "muse-spark-1.3",
+                "SYS", "Q?", keys, busy, new ManualClock(),
+                new RecSleeper(), cb);
+        System.out.println("event=" + cb.event);
+        System.out.println("net=" + count[0]);
     }
 }
 """
@@ -1487,9 +1978,13 @@ class M4cHost(unittest.TestCase):
                          ["true"])
         self.assertEqual(self._lines(out, "closed="),
                          ["true"])
+        self.assertEqual(self._lines(out, "readto="),
+                         ["20000"])
         self.assertEqual(self._lines(out, "got="), ["10"])
         self.assertEqual(self._lines(out, "fastclosed="),
                          ["true"])
+        self.assertEqual(self._lines(out, "fastreadto="),
+                         ["50000"])
 
     def test_retry_wait_past_deadline_times_out(self):
         out = self._scene("latewait")
@@ -1524,6 +2019,143 @@ class M4cHost(unittest.TestCase):
         self.assertTrue(
             self._lines(out, "second=")[0].startswith(
                 "answer|Hi"), out)
+
+    def test_stalled_read_stops_at_deadline(self):
+        # Real loopback server, 2000 ms budget, headers plus
+        # one byte at 1900 ms, then a stall. The whole sendTo
+        # call including cleanup must throw SocketTimeoutException
+        # at the deadline (tolerance -200/+1000 ms: the caller
+        # returns via Future.get within ms of the deadline and
+        # the abort path never waits for the worker, so +1000 ms
+        # covers JVM scheduling/GC jitter while any linger-join
+        # or socket overrun fails), the server must see the
+        # close, and a second transport must run cleanly once
+        # the first worker has exited. The worker stays blocked
+        # in its socket read well past the deadline, so the
+        # gate must be observably closed (closing1 is 1, next
+        # send refused) and the wait for its exit is real.
+        out = self._scene("stallread")
+        self.assertEqual(self._lines(out, "threw="),
+                         ["true|SocketTimeoutException"])
+        took = int(self._lines(out, "tookMs=")[0])
+        self.assertGreaterEqual(took, 1800)
+        self.assertLessEqual(took, 3000)
+        self.assertEqual(self._lines(out, "closing1="),
+                         ["1"])
+        self.assertEqual(self._lines(out, "gate1="),
+                         ["rejected|previous request "
+                          "still closing"])
+        closed = int(self._lines(out, "closedMs=")[0])
+        self.assertGreaterEqual(closed, 500)
+        self.assertLess(closed, 15000)
+        self.assertEqual(self._lines(out, "second="),
+                         ["200|true"])
+        took2 = int(self._lines(out, "took2Ms=")[0])
+        self.assertLess(took2, 3000)
+        self.assertEqual(self._lines(out, "sawclose="),
+                         ["true"])
+        port = int(self._lines(out, "port=")[0])
+        self.assertNotIn(port, (8765, 8080))
+
+    def test_stalled_headers_stop_at_deadline(self):
+        # Real loopback server, 2000 ms budget, no headers at
+        # all, then a stall. The whole sendTo call including
+        # cleanup must throw SocketTimeoutException at the
+        # deadline (tolerance -200/+1000 ms, as above), the
+        # server must see the close, and a second transport must
+        # run cleanly once the first worker has exited, proving
+        # the timer belonged only to the stalled send.
+        out = self._scene("stallheaders")
+        self.assertEqual(self._lines(out, "threw="),
+                         ["true|SocketTimeoutException"])
+        took = int(self._lines(out, "tookMs=")[0])
+        self.assertGreaterEqual(took, 1800)
+        self.assertLessEqual(took, 3000)
+        gate1 = self._lines(out, "gate1=")[0]
+        self.assertTrue(
+            gate1 == "allowed" or gate1.startswith(
+                "rejected|previous request still closing"),
+            out)
+        self.assertEqual(self._lines(out, "second="),
+                         ["200|true"])
+        took2 = int(self._lines(out, "took2Ms=")[0])
+        self.assertLess(took2, 3000)
+        self.assertEqual(self._lines(out, "sawclose="),
+                         ["true"])
+        port = int(self._lines(out, "port=")[0])
+        self.assertNotIn(port, (8765, 8080))
+
+    def test_stalled_write_stops_at_deadline(self):
+        # Real loopback server that never reads, 16 MB body,
+        # 2000 ms budget. A socket write has no timeout, so
+        # only the caller's Future deadline can stop this send
+        # (without it the call would run to the server's 4000 ms
+        # release). Same type and -200/+1000 ms bound as above;
+        # took2 allows 3000 ms because an immediately allowed
+        # second send waits for that release timer.
+        out = self._scene("stallwrite")
+        self.assertEqual(self._lines(out, "threw="),
+                         ["true|SocketTimeoutException"])
+        took = int(self._lines(out, "tookMs=")[0])
+        self.assertGreaterEqual(took, 1800)
+        self.assertLessEqual(took, 3000)
+        gate1 = self._lines(out, "gate1=")[0]
+        self.assertTrue(
+            gate1 == "allowed" or gate1.startswith(
+                "rejected|previous request still closing"),
+            out)
+        self.assertEqual(self._lines(out, "second="),
+                         ["200|true"])
+        took2 = int(self._lines(out, "took2Ms=")[0])
+        self.assertLess(took2, 3000)
+        port = int(self._lines(out, "port=")[0])
+        self.assertNotIn(port, (8765, 8080))
+
+    def test_interrupted_send_closes_admission_until_exited(
+            self):
+        # Real loopback body stall (headers plus one byte at
+        # once, then nothing), 5000 ms budget, caller
+        # interrupted at 500 ms. The first call must fail fast
+        # (no deadline wait); the worker stays blocked in its
+        # socket read, which no close or cancel unblocks, so
+        # admission stays closed: closing1 is 1 and the next
+        # send is refused until the worker has actually exited,
+        # then allowed, and the server sees the close.
+        out = self._scene("stallgate")
+        self.assertEqual(self._lines(out, "closingMid="),
+                         ["0"])
+        self.assertEqual(self._lines(out, "alive="),
+                         ["false"])
+        self.assertEqual(self._lines(out, "threw="),
+                         ["true|IOException"])
+        took = int(self._lines(out, "tookMs=")[0])
+        self.assertLess(took, 2000)
+        self.assertEqual(self._lines(out, "closing1="),
+                         ["1"])
+        self.assertEqual(self._lines(out, "gate1="),
+                         ["rejected|previous request "
+                          "still closing"])
+        closed = int(self._lines(out, "closedMs=")[0])
+        self.assertGreaterEqual(closed, 1000)
+        self.assertLess(closed, 15000)
+        self.assertEqual(self._lines(out, "second="),
+                         ["200|true"])
+        took2 = int(self._lines(out, "took2Ms=")[0])
+        self.assertLess(took2, 3000)
+        self.assertEqual(self._lines(out, "sawclose="),
+                         ["true"])
+        port = int(self._lines(out, "port=")[0])
+        self.assertNotIn(port, (8765, 8080))
+
+    def test_previous_request_still_closing_refused(self):
+        # Admission mapping: a transport refused while an
+        # earlier worker still closes becomes one refusal, not
+        # a retry and not "not reachable".
+        out = self._scene("stillclosing")
+        self.assertEqual(self._lines(out, "event="),
+                         ["refused|previous request "
+                          "still closing"])
+        self.assertEqual(self._lines(out, "net="), ["1"])
 
     def test_stats_cloud_line(self):
         done = self._java("com.stargate.assistant.StatsLine",

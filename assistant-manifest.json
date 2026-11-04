@@ -7,8 +7,8 @@
   },
   "assistant_cloud_apk": {
     "package": "com.stargate.assistant",
-    "path": "out-byok3/assistant-cloud.apk",
-    "sha256": "299ea77f7486a50eade7a6b11517f4953369f52770979b422bbcef56673e8765",
+    "path": "out-byok5/assistant-cloud.apk",
+    "sha256": "0f80c9c12b574a3996baca4ad17e20b1a910effeb6f7f7bdeb1b70c034977281",
     "version": "1.0"
   },
   "dependencies": [

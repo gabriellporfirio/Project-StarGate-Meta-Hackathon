@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in - Guided phone setup</title>
+</head>
+<body>
+<main>
+<h1>Guided phone setup</h1>
+<p>Press the button to sign in. The start link works once.</p>
+<form method="post" action="/api/signin" id="signin-form">
+<input type="hidden" name="token" value="{{TOKEN}}" id="signin-token">
+<button type="submit">Sign in</button>
+</form>
+<p id="signin-error" role="alert"></p>
+</main>
+<script src="/signin.js"></script>
+</body>
+</html>

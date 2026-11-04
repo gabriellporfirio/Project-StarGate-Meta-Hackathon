@@ -80,7 +80,7 @@ fails, stop and fix the device list first.
 
 4. **Transfer + check.** Download these four files from the
    codespace to `~/stargate-m4/` through the browser (cloud APK
-   from `/workspaces/m4b-tools/out-byok3/assistant-cloud.apk`,
+   from `/workspaces/m4b-tools/out-byok5/assistant-cloud.apk`,
    notices from `third_party/NOTICES.md`), then check each:
 
    ```sh
@@ -91,7 +91,7 @@ fails, stop and fix the device list first.
    ```
 
    Expected (a mismatch means stop): `assistant-cloud.apk`
-   `299ea77f7486a50eade7a6b11517f4953369f52770979b422bbcef56673e8765`
+   `0f80c9c12b574a3996baca4ad17e20b1a910effeb6f7f7bdeb1b70c034977281`
    (from `assistant-manifest.json`), `.pte`
    `8715cdba9e91f6bede00cc5f2d6b12397b95225da5630c4972a8da03001cda3b`,
    `tokenizer.model`
@@ -153,7 +153,7 @@ fails, stop and fix the device list first.
 
    ```sh
    BT=/workspaces/m4-tools/android-sdk/build-tools/34.0.0
-   O=/workspaces/m4b-tools/out-byok3
+   O=/workspaces/m4b-tools/out-byok5
    $BT/aapt2 dump xmltree $O/assistant-cloud.apk --file AndroidManifest.xml
    $BT/aapt2 dump xmltree $O/assistant-cloud.apk --file res/xml/data_extraction_rules.xml
    ```

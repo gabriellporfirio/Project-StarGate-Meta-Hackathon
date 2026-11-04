@@ -13,7 +13,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * reply that arrives after the deadline is dropped, and when
  * time runs out the transport is cancelled and closed and the
  * error is "timed out". A second question while one runs is
- * refused.
+ * refused. While an earlier send's worker is still closing
+ * its socket, the next send is refused with "previous request
+ * still closing" instead of overlapping it.
  */
 public final class CloudAsk {
 
@@ -111,6 +113,12 @@ public final class CloudAsk {
             try {
                 done = net.send(request, timeout);
             } catch (IOException failed) {
+                if (HttpNetworkLayer.STILL_CLOSING.equals(
+                        failed.getMessage())) {
+                    callback.onRefused(
+                            HttpNetworkLayer.STILL_CLOSING);
+                    return;
+                }
                 if (clock.nowMs() >= deadline) {
                     net.cancel();
                     callback.onError("timed out");

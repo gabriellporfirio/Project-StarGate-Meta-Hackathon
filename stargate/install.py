@@ -956,7 +956,16 @@ def build_user_prompt(used: list[dict], starting_text: str,
         "  anchor quote, policy rules need the rule ID alone.",
         "- Changes: list every edit against the generic steps",
         "  (removed/added/changed with detail; copy generic text exactly",
-        "  for removed/changed).",
+        "  for removed/changed). Each change object uses exactly these",
+        "  keys: %s. Example change (format only: do not copy "
+        "these values):" % ", ".join(
+            sorted('"%s"' % key for key in CHANGE_KEYS)),
+        "  %s" % json.dumps(PROMPT_CHANGE_EXAMPLE, sort_keys=True),
+        "- do_not_install is null or an object with exactly these keys: "
+        "%s. Example refusal (format only: do not copy these "
+        "values):" % ", ".join(
+            sorted('"%s"' % key for key in REFUSAL_KEYS)),
+        "  %s" % json.dumps(PROMPT_REFUSAL_EXAMPLE, sort_keys=True),
         "",
         "Return ONLY the install-draft-v1 JSON document:",
         "{\"schema_version\": \"install-draft-v1\", \"steps\": [...],",
@@ -989,6 +998,27 @@ WARNING_KEYS = frozenset({"text", "citation"})
 REFUSAL_KEYS = frozenset({"reason", "citation"})
 DRAFT_KEYS = frozenset({"schema_version", "steps", "erase_warning",
                         "changes", "do_not_install"})
+
+# Synthetic format-only prompt examples. Same keys and shape as
+# the checker requires (CHANGE_KEYS / REFUSAL_KEYS / CITATION_KEYS)
+# but placeholder values only: they match no generic step, no
+# anchor quote and no rule answer. Identical for every profile.
+# The prompt labels them "format only: do not copy these values".
+PROMPT_CHANGE_EXAMPLE = {
+    "kind": "changed",
+    "detail": "EXAMPLE generic step text",
+    "replacement": "EXAMPLE new step",
+    "reason": "EXAMPLE reason",
+    "citation": {"rule": "I-DYNAMIC", "fetch_id": "R1",
+                 "quote": "EXAMPLE quote copied word for word "
+                          "from the excerpt"},
+}
+PROMPT_REFUSAL_EXAMPLE = {
+    "reason": "EXAMPLE reason",
+    "citation": {"rule": "I-WIPE", "fetch_id": "R2",
+                 "quote": "EXAMPLE quote copied word for word "
+                          "from the excerpt"},
+}
 
 
 def _citation_shape_errors(label: str, citation: object) -> list[str]:
@@ -1894,8 +1924,26 @@ def _match_generic(detail: str, generic: list[str]) -> int | None:
     return None
 
 
+def _is_renderable_change(change: object) -> bool:
+    """Whether a change is safe to render as an accepted edit.
+
+    Only a well-formed change (exact checker keys, valid citation)
+    with a known kind may be matched or displayed. Anything else
+    is shown as a malformed placeholder, never as accepted.
+    """
+    if not isinstance(change, dict):
+        return False
+    if change.get("kind") not in CHANGE_KINDS:
+        return False
+    return _change_shape_errors(0, change) == []
+
+
 def _cite_text(citation: dict, links: dict[str, str]) -> str:
-    rule = citation["rule"]
+    if not isinstance(citation, dict):
+        return "[?]"
+    rule = citation.get("rule")
+    if not isinstance(rule, str) or not rule:
+        return "[?]"
     quote = citation.get("quote")
     if not quote:
         return "[%s]" % rule
@@ -1951,18 +1999,26 @@ def render_view(report: dict, starting_text: str,
     links = {record["id"]: record["url_final"]
              for record in report["fetch_records"]}
     generic = parse_starting_steps(starting_text)
-    last = report["drafts"][-1]["parsed"]
-    changes = last["changes"] if last is not None else []
+    last_entry = report["drafts"][-1]
+    last = last_entry.get("parsed")
+    if isinstance(last, dict) and isinstance(last.get("changes"), list):
+        changes = last["changes"]
+    else:
+        changes = []
+    last_passed = _draft_passed(last_entry)
     removed = set()
     changed: dict[int, str] = {}
-    for change in changes:
-        hit = _match_generic(change["detail"], generic)
-        if hit is None:
-            continue
-        if change["kind"] == "removed":
-            removed.add(hit)
-        elif change["kind"] == "changed":
-            changed[hit] = change["replacement"] or ""
+    if last_passed:
+        for change in changes:
+            if not _is_renderable_change(change):
+                continue
+            hit = _match_generic(change["detail"], generic)
+            if hit is None:
+                continue
+            if change["kind"] == "removed":
+                removed.add(hit)
+            elif change["kind"] == "changed":
+                changed[hit] = change["replacement"] or ""
     lines.extend(["", "Starting steps (generic, not specific to any "
                       "phone):"])
     for index, step in enumerate(generic):
@@ -1977,6 +2033,9 @@ def render_view(report: dict, starting_text: str,
         lines.append("")
         lines.append("Model edits:")
         for change in changes:
+            if not last_passed or not _is_renderable_change(change):
+                lines.append("  malformed change (not shown)")
+                continue
             tag = {"removed": "[REMOVED]", "added": "[ADDED]",
                    "changed": "[CHANGED]"}[change["kind"]]
             detail = "~~%s~~" % change["detail"] \
@@ -1988,20 +2047,22 @@ def render_view(report: dict, starting_text: str,
                 change["reason"],
                 _cite_text(change["citation"], links)))
     lines.append("")
-    if result in ("accepted", "unconfirmed") and last is not None:
-        if last["erase_warning"] is not None:
-            warning = last["erase_warning"]
+    if result in ("accepted", "unconfirmed") and isinstance(last, dict):
+        warning = last.get("erase_warning")
+        if isinstance(warning, dict):
             lines.append("Erase warning: \"%s\" %s" % (
-                warning["text"],
-                _cite_text(warning["citation"], links)))
+                warning.get("text", ""),
+                _cite_text(warning.get("citation"), links)))
             lines.append("")
         lines.append("Plan steps:")
         for number, step in enumerate(report["accepted_steps"],
                                       start=1):
             lines.append("  %d. %s" % (number, _step_text(step,
                                                           links)))
-    elif result == "do_not_install" and last is not None:
-        refusal = last["do_not_install"] or {}
+    elif result == "do_not_install" and isinstance(last, dict):
+        refusal = last.get("do_not_install")
+        if not isinstance(refusal, dict):
+            refusal = {}
         lines.append("Do not install: \"%s\" %s" % (
             refusal.get("reason", ""),
             _cite_text(refusal.get("citation", {"rule": "?",
@@ -2014,15 +2075,20 @@ def render_view(report: dict, starting_text: str,
         lines.append("")
         verdict = "accepted" if _draft_passed(entry) else "REJECTED"
         lines.append("Draft %d: %s" % (entry["index"], verdict))
-        if entry["parsed"] is not None:
-            steps = entry["parsed"]["steps"]
+        parsed = entry.get("parsed")
+        if isinstance(parsed, dict) and isinstance(
+                parsed.get("steps"), list):
+            steps = parsed["steps"]
             if steps:
                 lines.append("  steps: %s" % ", ".join(
-                    step["type"] for step in steps))
+                    step.get("type", "?") if isinstance(step, dict)
+                    else "?" for step in steps))
             else:
                 lines.append("  steps: (do_not_install)")
-        else:
+        elif parsed is None:
             lines.append("  steps: (unparseable reply)")
+        else:
+            lines.append("  steps: (malformed draft)")
         for item in entry["rule_results"]:
             if item["status"] == "pass":
                 lines.append("  %s: pass" % item["rule"])

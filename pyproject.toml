@@ -15,3 +15,6 @@ stargate = "stargate.cli:main"
 
 [tool.setuptools]
 packages = ["stargate", "stargate.build"]
+
+[tool.setuptools.package-data]
+stargate = ["app/*"]

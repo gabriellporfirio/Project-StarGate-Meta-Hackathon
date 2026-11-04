@@ -79,6 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
     install_plan.add_argument("--json-out", default=None)
     install_plan.add_argument("--diagnose", action="store_true")
     install_plan.add_argument("--diag-out", default=None)
+    app = sub.add_parser(
+        "app", help="guided app on 127.0.0.1 (M6 platform)"
+    )
+    app.add_argument("--port", type=int, default=8770)
+    app.add_argument("--forwarded-host", default=None)
     return parser
 
 
@@ -123,6 +128,11 @@ def main(argv: list[str] | None = None) -> int:
         if stderr_text:
             print(stderr_text, end="", file=sys.stderr)
         return exit_code
+    if args.command == "app":
+        from .appserver import run_app
+        return run_app(["--port", str(args.port)] +
+                       (["--forwarded-host", args.forwarded_host]
+                        if args.forwarded_host else []))
     if args.command == "build":
         if args.plan is None or args.out is None:
             print("error: stargate build needs --plan and --out",

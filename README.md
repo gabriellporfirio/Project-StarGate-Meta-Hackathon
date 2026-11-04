@@ -34,6 +34,36 @@ Sources: `stargate/cli.py:27` (doctor), `stargate/cli.py:31`
 `MODEL_API_KEY` comes from the environment only and is never written to a file.
 See `docs/decisions.md` for the M0 record.
 
+## How to run the platform app
+
+`stargate app` starts the guided journey on the computer: nine steps
+from Welcome to Done, calling M1 (scan), M3 (plan) and M4 (build).
+Standard library only. Full rules in `docs/app.md`.
+
+```sh
+stargate app [--port 8770] [--forwarded-host <host>]
+```
+
+The server listens on `127.0.0.1` only (default port `8770`, printed at
+start). Forward that port as **Private**, then open the one-time start
+link printed in the terminal. The link shows a Sign in button; the
+button's POST sets the session cookie and consumes the link.
+
+`--forwarded-host` is the codespace's forwarded host (bare host, no
+scheme). It is the only non-loopback Host accepted, and the session
+cookie is Secure over it. From a Mac browser (Safari included):
+
+```sh
+python3 -m stargate app --port 8770 --forwarded-host \
+  "$CODESPACE_NAME-8770.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"
+```
+
+Forward port 8770 as **Private**, then open the printed
+`https://<forwarded host>/start?token=...` link. The Sign in button
+POSTs via fetch so the request always carries the exact forwarded
+`https` origin; a refusal logs its reason (`app: refused ...`)
+without any token or cookie value.
+
 ## Models and keys
 
 The install decision uses Muse Spark (`muse-spark-1.3`,

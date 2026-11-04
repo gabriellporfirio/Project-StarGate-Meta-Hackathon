@@ -2881,5 +2881,635 @@ class Fix5jReplies(InstallTestCase):
         self.assertEqual(meta_log[0]["error"], "bad-response")
 
 
+class Fix5uRender(InstallTestCase):
+    """5u: readable view never crashes on a rejected/malformed draft."""
+
+    FIXTURE = REPO / "tests" / "fixtures" / \
+        "flagship-trace-v3-double-reject.json"
+
+    def _load_trace(self):
+        with open(self.FIXTURE, encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def test_saved_flagship_renders_live_path(self):
+        trace = self._load_trace()
+        report = trace["report"]
+        self.assertEqual(report["result"], "no_valid_plan")
+        self.assertIsNone(report["accepted_steps"])
+        view = install.render_view(report, trace["starting_steps"])
+        self.assertIn("Result: no_valid_plan", view)
+        self.assertIn("No valid draft after the repair round", view)
+        self.assertIn("malformed change (not shown)", view)
+        self.assertIn("Draft 1: REJECTED", view)
+        self.assertIn("Draft 2: REJECTED", view)
+        self.assertIn("I-FORMAT: FAIL", view)
+        # No accepted edits: generic steps stay plain.
+        self.assertNotIn("~~", view)
+        self.assertNotIn("Plan steps:", view)
+        # Documented code for no_valid_plan is EXIT_NO_VALID_PLAN.
+        self.assertEqual(install.EXIT_NO_VALID_PLAN, 10)
+        self.assertEqual(
+            install._exit_for_result("no_valid_plan"), 10)
+        # Rule results unchanged: both drafts still fail I-FORMAT.
+        for entry in report["drafts"]:
+            results = {item["rule"]: item["status"]
+                       for item in entry["rule_results"]}
+            self.assertEqual(results["I-FORMAT"], "fail")
+
+    def test_saved_flagship_replays_offline(self):
+        json_out = self._tmp("flagship-replay.json")
+        fetcher = fetch.Fetcher(
+            budgets=install.InstallBudgets(),
+            opener=RaisingOpener(), resolve=_public_resolve)
+        code, stdout_text, stderr_text = install.run_install_plan(
+            replay_path=str(self.FIXTURE), json_out=json_out,
+            provider=install.FakeProvider([]), fetcher=fetcher,
+            budgets=install.InstallBudgets())
+        self.assertEqual(code, 10)
+        self.assertEqual(stderr_text, "")
+        self.assertIn("Result: no_valid_plan", stdout_text)
+        self.assertIn("Replay of a live run on", stdout_text)
+        self.assertIn("malformed change (not shown)", stdout_text)
+        self.assertIn("Draft 1: REJECTED", stdout_text)
+        self.assertIn("Draft 2: REJECTED", stdout_text)
+        with open(json_out, encoding="utf-8") as handle:
+            replayed = json.load(handle)
+        self.assertEqual(replayed["result"], "no_valid_plan")
+        self.assertEqual(replayed["provenance"], "replay")
+        trace = self._load_trace()
+        self.assertEqual(_decision_payload(trace["report"]),
+                         _decision_payload(replayed))
+
+
+class Fix5uPrompt(InstallTestCase):
+    """5u: prompt names the exact change/refusal keys with examples."""
+
+    def _prompt(self):
+        from types import SimpleNamespace
+        used = _used(lock=(False, "inferred"))
+        starting_text, _ = install.load_starting_steps()
+        pages = [
+            {"url": FASTBOOTD_URL,
+             "record": SimpleNamespace(record_id="R1"),
+             "excerpt": {"text": "excerpt one"}, "text": "full one"},
+            {"url": RUNNING_URL,
+             "record": SimpleNamespace(record_id="R2"),
+             "excerpt": {"text": "excerpt two"}, "text": "full two"},
+        ]
+        return install.build_user_prompt(used, starting_text, pages)
+
+    def test_examples_pass_shape_and_keys_named(self):
+        prompt = self._prompt()
+        change_json = json.dumps(
+            install.PROMPT_CHANGE_EXAMPLE, sort_keys=True)
+        refusal_json = json.dumps(
+            install.PROMPT_REFUSAL_EXAMPLE, sort_keys=True)
+        self.assertIn(change_json, prompt)
+        self.assertIn(refusal_json, prompt)
+        for key in install.CHANGE_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.REFUSAL_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.CITATION_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        self.assertEqual(
+            set(install.PROMPT_CHANGE_EXAMPLE.keys()),
+            set(install.CHANGE_KEYS))
+        self.assertEqual(
+            set(install.PROMPT_REFUSAL_EXAMPLE.keys()),
+            set(install.REFUSAL_KEYS))
+        self.assertEqual(
+            install._change_shape_errors(
+                0, install.PROMPT_CHANGE_EXAMPLE), [])
+        draft = _draft(
+            _flagship_steps(),
+            changes=[copy.deepcopy(install.PROMPT_CHANGE_EXAMPLE)])
+        self.assertEqual(install.draft_shape_errors(draft), [])
+        refusal_draft = _draft(
+            [], changes=[],
+            refusal=copy.deepcopy(install.PROMPT_REFUSAL_EXAMPLE))
+        self.assertEqual(
+            install.draft_shape_errors(refusal_draft), [])
+
+    def test_old_wrong_keys_still_rejected(self):
+        bad = {"action": "removed", "original": "Foo.",
+               "detail": "old keys"}
+        draft = _draft(_flagship_steps(), changes=[bad])
+        errors = install.draft_shape_errors(draft)
+        self.assertTrue(any("unknown key" in item for item in errors))
+        self.assertTrue(any("missing" in item for item in errors))
+
+
+class Fix5wSyntheticExamples(InstallTestCase):
+    """5w: examples are synthetic format-only placeholders.
+
+    All answer-leak checks run on the EXAMPLE BLOCKS only (the two
+    embedded JSON objects), never the whole prompt: real source
+    excerpts legitimately contain the anchors.
+    """
+
+    LABEL = "format only: do not copy these values"
+
+    def _pages(self):
+        from types import SimpleNamespace
+        return [
+            {"url": FASTBOOTD_URL,
+             "record": SimpleNamespace(record_id="R1"),
+             "excerpt": {"text": "excerpt one"}, "text": "full one"},
+            {"url": RUNNING_URL,
+             "record": SimpleNamespace(record_id="R2"),
+             "excerpt": {"text": "excerpt two"}, "text": "full two"},
+        ]
+
+    def _prompt_for_used(self, used):
+        starting_text, _ = install.load_starting_steps()
+        return install.build_user_prompt(
+            used, starting_text, self._pages())
+
+    def _example_blocks(self, prompt):
+        """The two embedded example JSON lines, stripped."""
+        lines = prompt.splitlines()
+        change_block = None
+        refusal_block = None
+        for index, line in enumerate(lines):
+            if "Example change" in line:
+                change_block = lines[index + 1].strip()
+            if "Example refusal" in line:
+                refusal_block = lines[index + 1].strip()
+        self.assertIsNotNone(change_block)
+        self.assertIsNotNone(refusal_block)
+        return change_block, refusal_block
+
+    def _all_demo_prompts(self):
+        """One prompt per demo profile, pages held constant."""
+        prompts = {}
+        for sim in scan.KNOWN_FIXTURES:
+            profile = scan.build_profile(sim)
+            used = install.facts_for_model(profile["facts"])
+            prompts[sim] = self._prompt_for_used(used)
+        return prompts
+
+    def test_a_examples_pass_iformat(self):
+        self.assertEqual(
+            set(install.PROMPT_CHANGE_EXAMPLE.keys()),
+            set(install.CHANGE_KEYS))
+        self.assertEqual(
+            set(install.PROMPT_REFUSAL_EXAMPLE.keys()),
+            set(install.REFUSAL_KEYS))
+        self.assertEqual(
+            set(install.PROMPT_CHANGE_EXAMPLE["citation"].keys()),
+            set(install.CITATION_KEYS))
+        self.assertEqual(
+            set(install.PROMPT_REFUSAL_EXAMPLE["citation"].keys()),
+            set(install.CITATION_KEYS))
+        self.assertEqual(
+            install._change_shape_errors(
+                0, install.PROMPT_CHANGE_EXAMPLE), [])
+        draft = _draft(
+            _flagship_steps(),
+            changes=[copy.deepcopy(install.PROMPT_CHANGE_EXAMPLE)])
+        self.assertEqual(install.draft_shape_errors(draft), [])
+        refusal_draft = _draft(
+            [], changes=[],
+            refusal=copy.deepcopy(install.PROMPT_REFUSAL_EXAMPLE))
+        self.assertEqual(
+            install.draft_shape_errors(refusal_draft), [])
+
+    def test_b_example_blocks_contain_no_answers(self):
+        change_json = json.dumps(
+            install.PROMPT_CHANGE_EXAMPLE, sort_keys=True)
+        refusal_json = json.dumps(
+            install.PROMPT_REFUSAL_EXAMPLE, sort_keys=True)
+        for block in (change_json, refusal_json):
+            # No anchor quote.
+            for anchor in (install.ANCHOR_DYNAMIC,
+                           install.ANCHOR_UNLOCK,
+                           install.ANCHOR_WIPE):
+                self.assertNotIn(anchor, block)
+                self.assertNotIn(
+                    install.normalise_text(anchor),
+                    install.normalise_text(block))
+            lowered = block.lower()
+            # No real answer text.
+            self.assertNotIn("fastbootd", lowered)
+            for word in ("unlock", "locked", "oem", "carrier",
+                         "sim locked"):
+                self.assertNotIn(word, lowered)
+            # Explicitly synthetic placeholders.
+            self.assertIn("EXAMPLE", block)
+        # No generic-step text in either block.
+        starting_text, _ = install.load_starting_steps()
+        steps = []
+        for line in starting_text.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped[0].isdigit() and "." in stripped:
+                steps.append(stripped.split(".", 1)[1].strip())
+        self.assertTrue(steps)
+        for step in steps:
+            self.assertNotIn(step, change_json)
+            self.assertNotIn(step, refusal_json)
+
+    def test_c_examples_identical_across_profiles(self):
+        prompts = self._all_demo_prompts()
+        self.assertEqual(set(prompts.keys()),
+                         set(scan.KNOWN_FIXTURES))
+        expected_change = json.dumps(
+            install.PROMPT_CHANGE_EXAMPLE, sort_keys=True)
+        expected_refusal = json.dumps(
+            install.PROMPT_REFUSAL_EXAMPLE, sort_keys=True)
+        seen_change = set()
+        seen_refusal = set()
+        for sim, prompt in prompts.items():
+            change_block, refusal_block = self._example_blocks(prompt)
+            self.assertEqual(change_block, expected_change,
+                             "change block differs for %s" % sim)
+            self.assertEqual(refusal_block, expected_refusal,
+                             "refusal block differs for %s" % sim)
+            seen_change.add(change_block)
+            seen_refusal.add(refusal_block)
+            self.assertIn(self.LABEL, prompt)
+        self.assertEqual(len(seen_change), 1)
+        self.assertEqual(len(seen_refusal), 1)
+
+    def test_d_placeholder_citations_fail_iquote(self):
+        change_draft = _draft(
+            _flagship_steps(),
+            changes=[copy.deepcopy(install.PROMPT_CHANGE_EXAMPLE)])
+        self.assertEqual(
+            install.draft_shape_errors(change_draft), [])
+        change_errors = install.check_quotes(
+            change_draft, TEXTS_BY_ID)
+        self.assertTrue(
+            change_errors,
+            "placeholder change citation must fail I-QUOTE")
+        self.assertTrue(
+            any("quote" in item.lower() or "anchor" in item.lower()
+                for item in change_errors),
+            change_errors)
+        refusal_draft = _draft(
+            [], changes=[],
+            refusal=copy.deepcopy(install.PROMPT_REFUSAL_EXAMPLE))
+        self.assertEqual(
+            install.draft_shape_errors(refusal_draft), [])
+        refusal_errors = install.check_quotes(
+            refusal_draft, TEXTS_BY_ID)
+        self.assertTrue(
+            refusal_errors,
+            "placeholder refusal citation must fail I-QUOTE")
+
+    def test_e_keys_and_label_still_in_prompt(self):
+        used = _used(lock=(False, "inferred"))
+        prompt = self._prompt_for_used(used)
+        for key in install.CHANGE_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.REFUSAL_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.CITATION_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.STEP_KEYS:
+            self.assertIn('"%s"' % key, prompt)
+        for key in install.DRAFT_KEYS:
+            self.assertIn(key, prompt)
+        self.assertIn(self.LABEL, prompt)
+        change_json = json.dumps(
+            install.PROMPT_CHANGE_EXAMPLE, sort_keys=True)
+        refusal_json = json.dumps(
+            install.PROMPT_REFUSAL_EXAMPLE, sort_keys=True)
+        self.assertIn(change_json, prompt)
+        self.assertIn(refusal_json, prompt)
+
+    def test_f_old_wrong_keys_still_fail(self):
+        for bad_key in ("action", "original", "text", "new_text"):
+            bad_change = copy.deepcopy(install.PROMPT_CHANGE_EXAMPLE)
+            bad_change[bad_key] = "bogus"
+            draft = _draft(_flagship_steps(), changes=[bad_change])
+            errors = install.draft_shape_errors(draft)
+            self.assertTrue(
+                any("unknown key" in item and bad_key in item
+                    for item in errors),
+                "%s should be rejected: %s" % (bad_key, errors))
+
+
+class Fix5yLauncher(InstallTestCase):
+    """5y: one guarded v4 script, launcher cap proven offline.
+
+    (a)(b) prove the exact launcher's cap (META_MAX_CALLS=2) with a
+    fake opener and fake HTTP, never the network. (c)(d)(e) run a
+    scratch copy of v4-run.sh with a stub interpreter under
+    /workspaces/m5-tools/scratch-5y (emptied after), never step5/.
+    The real v4-run.sh is never executed here.
+    """
+
+    SCRIPT = Path("/workspaces/m5-tools/v4-run.sh")
+    SCRATCH = Path("/workspaces/m5-tools/scratch-5y")
+    LAUNCHER = (
+        'timeout 180s env PYTHONPATH=/workspaces/m5 '
+        '/usr/local/bin/python3 -c "from stargate import install, cli; '
+        'install.InstallBudgets.META_MAX_CALLS=2; '
+        'raise SystemExit(cli.main())" install-plan'
+    )
+    SIX = (
+        "flagship-profile-v4.json",
+        "flagship-plan-v4.json",
+        "flagship-trace-v4.json",
+        "flagship-install-v4.json",
+        "flagship-replay-v4.json",
+        "flagship-exits-v4.txt",
+    )
+
+    def setUp(self):
+        super().setUp()
+        self.SCRATCH.mkdir(parents=True, exist_ok=True)
+        self._empty_scratch()
+
+    def tearDown(self):
+        self._empty_scratch()
+        super().tearDown()
+
+    def _empty_scratch(self):
+        if not self.SCRATCH.exists():
+            return
+        for child in self.SCRATCH.iterdir():
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                try:
+                    child.unlink()
+                except FileNotFoundError:
+                    pass
+
+    def _stub_python_text(self):
+        return """#!/usr/bin/env bash
+# Stub interpreter for 5y: logs calls, simulates outcomes via env.
+LOG="${STUB_LOG:-/dev/null}"
+echo "CALL: $*" >> "$LOG"
+if [[ "$*" == *"import json,sys"* ]]; then
+  exec /usr/local/bin/python3 "$@"
+fi
+if [[ "$*" == *"-m stargate scan"* ]]; then
+  echo '{"stub": "profile"}'
+  exit "${STUB_SCAN_EXIT:-0}"
+fi
+if [[ "$*" == *"-m stargate plan"* ]]; then
+  prev=""
+  for arg in "$@"; do
+    if [[ "$prev" == "--json-out" ]]; then
+      if [[ "${STUB_PLAN_EXIT:-0}" -eq 0 ]]; then
+        echo '{"stub": "plan"}' > "$arg"
+      fi
+      break
+    fi
+    prev="$arg"
+  done
+  exit "${STUB_PLAN_EXIT:-0}"
+fi
+if [[ "$*" == *"META_MAX_CALLS=2"* ]]; then
+  if [[ "$*" == *"install-plan"* && "$*" != *"--replay"* ]]; then
+  record=""
+  jsonout=""
+  prev=""
+  for arg in "$@"; do
+    if [[ "$prev" == "--record" ]]; then record="$arg"; fi
+    if [[ "$prev" == "--json-out" ]]; then jsonout="$arg"; fi
+    prev="$arg"
+  done
+  mode="${STUB_INSTALL_MODE:-success}"
+  code="${STUB_INSTALL_EXIT:-0}"
+  if [[ "$mode" == "success" ]]; then
+    echo '{"stub": "trace"}' > "$record"
+    echo '{"stub": "install"}' > "$jsonout"
+  elif [[ "$mode" == "no-trace" ]]; then
+    :
+  elif [[ "$mode" == "invalid-json" ]]; then
+    echo 'not json' > "$record"
+  elif [[ "$mode" == "fail-with-trace" ]]; then
+    echo '{"stub": "trace"}' > "$record"
+  fi
+  exit "$code"
+  fi
+fi
+if [[ "$*" == *"--replay"* ]]; then
+  prev=""
+  for arg in "$@"; do
+    if [[ "$prev" == "--json-out" ]]; then
+      if [[ "${STUB_REPLAY_EXIT:-0}" -eq 0 ]]; then
+        echo '{"stub": "replay"}' > "$arg"
+      fi
+      break
+    fi
+    prev="$arg"
+  done
+  exit "${STUB_REPLAY_EXIT:-0}"
+fi
+echo "stub: unknown call: $*" >&2
+exit 99
+"""
+
+    def _scratch_copy(self, name, stub_env=None):
+        """Copy v4-run.sh to scratch with step5+python redirected.
+
+        Returns (run_sh, step5, stub_log, bin_dir). Never touches
+        the real step5/ or the real v4-run.sh (read-only).
+        """
+        import stat
+        work = self.SCRATCH / name
+        step5 = work / "step5"
+        bin_dir = work / "bin"
+        step5.mkdir(parents=True, exist_ok=True)
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        stub_py = bin_dir / "python3"
+        stub_py.write_text(self._stub_python_text(),
+                           encoding="utf-8")
+        stub_py.chmod(stub_py.stat().st_mode | stat.S_IXUSR
+                      | stat.S_IXGRP | stat.S_IXOTH)
+        stub_log = work / "calls.log"
+        text = self.SCRIPT.read_text(encoding="utf-8")
+        self.assertNotIn(str(self.SCRATCH), text,
+                         "real script must not reference scratch")
+        text = text.replace("/workspaces/m5-tools/step5",
+                            str(step5))
+        text = text.replace("/usr/local/bin/python3",
+                            str(stub_py))
+        run_sh = work / "run.sh"
+        run_sh.write_text(text, encoding="utf-8")
+        return run_sh, step5, stub_log, bin_dir
+
+    def _run_copy(self, run_sh, stub_log, env_extra=None):
+        import subprocess
+        env = dict(os.environ)
+        env["STUB_LOG"] = str(stub_log)
+        for key in list(env.keys()):
+            if key == "MODEL_API_KEY":
+                del env[key]
+        if env_extra:
+            env.update(env_extra)
+        proc = subprocess.run(
+            ["bash", str(run_sh)], capture_output=True, text=True,
+            env=env, timeout=60)
+        return proc
+
+    def _calls(self, stub_log):
+        if not stub_log.exists():
+            return []
+        return stub_log.read_text(
+            encoding="utf-8").splitlines()
+
+    def test_a_third_send_never_happens_exit_6(self):
+        script = self.SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("set -u", script)
+        self.assertNotIn("set -e", script)
+        self.assertIn(self.LAUNCHER, script)
+        self.assertIn("InstallBudgets.META_MAX_CALLS=2", script)
+        self.assertNotIn("$MODEL_API_KEY", script)
+        self.assertNotIn("${MODEL_API_KEY", script)
+        self.assertNotIn("printenv", script)
+        old_max = install.InstallBudgets.META_MAX_CALLS
+        self.assertEqual(old_max, 3)
+        install.InstallBudgets.META_MAX_CALLS = 2
+        try:
+            profile_path, plan_path, _ = self._plan_files(
+                "flagship", "files,assistant")
+            failure = meta.MetaError(meta.NETWORK_ERROR, "down")
+            bad = _flagship_draft(mode="bootloader")
+            result = self._run(
+                profile_path=profile_path, plan_path=plan_path,
+                provider=install.FakeProvider(
+                    [failure, (json.dumps(bad), "stop")]))
+            self.assertEqual(result["code"], 6, result["stderr"])
+            self.assertIn("budget exhausted: meta-calls",
+                          result["stderr"])
+            self.assertEqual(len(result["provider"].calls), 2)
+            self.assertEqual(
+                result["budgets"].meta_calls_used, 2)
+        finally:
+            install.InstallBudgets.META_MAX_CALLS = old_max
+        self.assertEqual(install.InstallBudgets.META_MAX_CALLS, 3)
+
+    def test_b_page_cap_stays_two(self):
+        self.assertEqual(
+            install.InstallBudgets.HTTP_MAX_REQUESTS, 2)
+        script = self.SCRIPT.read_text(encoding="utf-8")
+        self.assertNotIn("HTTP_MAX_REQUESTS", script)
+        old_max = install.InstallBudgets.META_MAX_CALLS
+        install.InstallBudgets.META_MAX_CALLS = 2
+        try:
+            profile_path, plan_path, _ = self._plan_files(
+                "flagship", "files,assistant")
+            result = self._run(
+                profile_path=profile_path, plan_path=plan_path,
+                replies=[(json.dumps(_flagship_draft()),
+                          "stop")])
+            self.assertEqual(result["code"], 0, result["stderr"])
+            self.assertEqual(len(result["opener"].calls), 2)
+            self.assertEqual(result["budgets"].http_used, 2)
+        finally:
+            install.InstallBudgets.META_MAX_CALLS = old_max
+
+    def test_c_precheck_refuses_and_live_never_starts(self):
+        script = self.SCRIPT.read_text(encoding="utf-8")
+        for name in self.SIX:
+            self.assertIn(name, script)
+        self.assertIn("refusing to overwrite", script)
+        for name in self.SIX:
+            with self.subTest(output=name):
+                self._empty_scratch()
+                run_sh, step5, stub_log, _ = self._scratch_copy(
+                    "c-%s" % name.replace(".", "_"))
+                victim = step5 / name
+                victim.write_text("pre-existing", encoding="utf-8")
+                proc = self._run_copy(run_sh, stub_log)
+                self.assertNotEqual(
+                    proc.returncode, 0,
+                    "pre-check must refuse when %s exists" % name)
+                self.assertIn("refusing to overwrite",
+                              proc.stderr)
+                calls = self._calls(stub_log)
+                self.assertEqual(
+                    calls, [],
+                    "live command must never start: %s" % calls)
+                self.assertEqual(
+                    victim.read_text(encoding="utf-8"),
+                    "pre-existing")
+                exits = step5 / "flagship-exits-v4.txt"
+                if name == "flagship-exits-v4.txt":
+                    self.assertEqual(
+                        exits.read_text(encoding="utf-8"),
+                        "pre-existing")
+                else:
+                    self.assertFalse(exits.exists())
+                self._empty_scratch()
+
+    def test_d_failing_scan_or_plan_stops_before_live(self):
+        with self.subTest(case="scan-fails"):
+            self._empty_scratch()
+            run_sh, step5, stub_log, _ = self._scratch_copy(
+                "d-scan")
+            proc = self._run_copy(
+                run_sh, stub_log, {"STUB_SCAN_EXIT": "1"})
+            self.assertNotEqual(proc.returncode, 0)
+            exits = (step5 / "flagship-exits-v4.txt").read_text(
+                encoding="utf-8").splitlines()
+            self.assertEqual(exits, ["1 scan 1"])
+            calls = self._calls(stub_log)
+            self.assertTrue(any("scan" in line for line in calls),
+                            calls)
+            self.assertFalse(
+                any("META_MAX_CALLS=2" in line for line in calls),
+                "live must never start after scan failure: %s"
+                % calls)
+            self.assertFalse(
+                any("--replay" in line for line in calls), calls)
+            self._empty_scratch()
+        with self.subTest(case="plan-fails"):
+            self._empty_scratch()
+            run_sh, step5, stub_log, _ = self._scratch_copy(
+                "d-plan")
+            proc = self._run_copy(
+                run_sh, stub_log, {"STUB_PLAN_EXIT": "6"})
+            self.assertNotEqual(proc.returncode, 0)
+            exits = (step5 / "flagship-exits-v4.txt").read_text(
+                encoding="utf-8").splitlines()
+            self.assertEqual(exits, ["1 scan 0", "2 plan 6"])
+            calls = self._calls(stub_log)
+            self.assertTrue(any("scan" in line for line in calls),
+                            calls)
+            self.assertFalse(
+                any("META_MAX_CALLS=2" in line for line in calls),
+                "live must never start after plan failure: %s"
+                % calls)
+            self._empty_scratch()
+
+    def test_e_no_new_trace_skips_replay_and_records_why(self):
+        for mode, code in (("no-trace", "6"),
+                           ("invalid-json", "10")):
+            with self.subTest(mode=mode):
+                self._empty_scratch()
+                run_sh, step5, stub_log, _ = self._scratch_copy(
+                    "e-%s" % mode.replace("_", "-"))
+                proc = self._run_copy(
+                    run_sh, stub_log,
+                    {"STUB_INSTALL_MODE": mode,
+                     "STUB_INSTALL_EXIT": code})
+                self.assertEqual(proc.returncode, int(code))
+                exits = (step5 / "flagship-exits-v4.txt").read_text(
+                    encoding="utf-8").splitlines()
+                self.assertEqual(
+                    exits,
+                    ["1 scan 0", "2 plan 0",
+                     "3 install %s" % code,
+                     "4 replay skipped no-new-trace"])
+                calls = self._calls(stub_log)
+                self.assertTrue(
+                    any("META_MAX_CALLS=2" in line
+                        for line in calls), calls)
+                self.assertFalse(
+                    any("--replay" in line for line in calls),
+                    "replay must be skipped: %s" % calls)
+                self.assertIn("skipping replay", proc.stderr)
+                self._empty_scratch()
+
+
 if __name__ == "__main__":
     unittest.main()
