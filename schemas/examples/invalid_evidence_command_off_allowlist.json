@@ -1,0 +1,21 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-10-30T12:00:00Z",
+  "facts": {
+    "identity.model": {
+      "status": "measured",
+      "value": "Pixel 8",
+      "unit": null,
+      "evidence": [
+        {
+          "probe_id": "getprop-ro.product.model",
+          "command": "getprop ro.serialno",
+          "excerpt": "Pixel 8",
+          "observed_at": "2026-10-30T12:00:01Z"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.launcher",
+      "path": "apk/stargate-launcher.apk",
+      "service": "launcher",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.assistant",
+      "path": "apk/stargate-assistant.apk",
+      "service": "assistant",
+      "sha256": "f082f6a7e778abf2de631434c681c4cdfeb7b6495777c87cef480b03d8f21cd8",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [],
+  "assistant_manifest_sha256": "1f8f2553fee50c71985d4988e466a943094230cccdf1d64e7f2e584ebb457418",
+  "build_id": "m4a-example-bad-delivery",
+  "labels": [],
+  "model_delivery": "after_boot",
+  "model_files": [
+    {
+      "bytes": 12,
+      "name": "model.pte",
+      "sha256": "8715cdba9e91f6bede00cc5f2d6b12397b95225da5630c4972a8da03001cda3b",
+      "target": "/product/stargate/model/model.pte"
+    }
+  ],
+  "model_payload_path": "model-payload",
+  "plan_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "route": "A",
+  "runtime_version": "executorch 1.5.1",
+  "schema_version": "build-v1",
+  "selection": ["assistant"],
+  "selection_result": "fits",
+  "unresolved": [{"area": "image_size", "detail": "example"}]
+}

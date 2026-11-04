@@ -1,0 +1,1 @@
+{"changes": [], "do_not_install": {"citation": {"fetch_id": "R2", "quote": "If OEM unlocking remains unavailable, your device might be SIM locked by your carrier and the bootloader can't be unlocked.", "rule": "I-UNLOCK"}, "reason": "No official unlock path for this phone."}, "erase_warning": null, "schema_version": "install-draft-v1", "steps": []}

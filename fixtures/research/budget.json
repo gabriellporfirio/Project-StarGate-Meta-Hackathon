@@ -1,0 +1,27 @@
+{
+  "schema_version": "research-v1",
+  "subject": {"manufacturer": "ACME", "model": "SIMULATED B1", "codename": "acme_b1"},
+  "mode": "pipeline",
+  "provenance": "synthetic",
+  "state": {"status": "complete", "reason": null},
+  "coverage": {"lineage": "found", "repos": "none_found", "ai": "none_found", "pmos": "none_found", "stock_firmware": "found", "treble_gsi": "found"},
+  "steps": [
+    {"seq": 1, "kind": "synthetic", "detail": "SIMULATED: hand-written for the budget fixture."}
+  ],
+  "fetches": [
+    {"id": "R1", "tool": "lineage_device", "url_requested": "https://example.com/simulated/lineage/acme_b1.yml", "url_final": "https://example.com/simulated/lineage/acme_b1.yml", "status": 200, "fetched_at": "2026-11-01T00:00:01Z", "byte_size": 900, "sha256": "", "outcome": "ok", "cached": false},
+    {"id": "R2", "tool": "pmos_page", "url_requested": "https://example.com/simulated/pmos/acme_b1", "url_final": "https://example.com/simulated/pmos/acme_b1", "status": 404, "fetched_at": "2026-11-01T00:00:02Z", "byte_size": 100, "sha256": "", "outcome": "ok", "cached": false}
+  ],
+  "facts": [
+    {"id": "F1", "topic": "lineage", "name": "lineage.support", "status": "found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": ["R1"], "value": {"support": "historical_only", "versions": ["17.1"], "maintainers": []}},
+    {"id": "F2", "topic": "repos", "name": "repos.device_tree", "status": "none_found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F3", "topic": "repos", "name": "repos.kernel", "status": "none_found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F4", "topic": "repos", "name": "repos.vendor", "status": "none_found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F5", "topic": "repos", "name": "repos.candidates", "status": "none_found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": [], "value": {"repos": []}},
+    {"id": "F6", "topic": "ai", "name": "ai.candidates", "status": "none_found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": [], "value": {"models": []}},
+    {"id": "F7", "topic": "pmos", "name": "pmos.status", "status": "found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": ["R2"], "value": {"status": "not_found", "title": null, "url": null}},
+    {"id": "F8", "topic": "stock_firmware", "name": "stock_firmware", "status": "found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": [], "value": {"coverage": "not_covered"}},
+    {"id": "F9", "topic": "treble_gsi", "name": "treble_gsi", "status": "found", "reason": null, "subject_codename": "acme_b1", "fetch_ids": [], "value": {"coverage": "not_covered"}}
+  ],
+  "notes": {"text": "SIMULATED: synthetic research for the budget fixture (acme_b1).", "cited_ids": [], "missing_ids": [], "label": "model explanation, not checked"}
+}

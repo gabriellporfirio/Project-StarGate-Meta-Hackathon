@@ -1,0 +1,29 @@
+{
+  "schema_version": "research-v1",
+  "subject": {"manufacturer": "OnePlus", "model": "6", "codename": "enchilada"},
+  "mode": "agent",
+  "provenance": "live",
+  "state": {"status": "complete", "reason": null},
+  "coverage": {"lineage": "found", "repos": "found", "ai": "unknown", "pmos": "found", "stock_firmware": "not_covered", "treble_gsi": "not_covered"},
+  "steps": [
+    {"seq": 1, "kind": "input", "detail": "subject enchilada"},
+    {"seq": 2, "kind": "done", "detail": "state complete"}
+  ],
+  "fetches": [
+    {"id": "R1", "tool": "lineage_device", "url_requested": "https://raw.githubusercontent.com/LineageOS/lineage_wiki/main/_data/devices/enchilada.yml", "url_final": "https://raw.githubusercontent.com/LineageOS/lineage_wiki/main/_data/devices/enchilada.yml", "status": 200, "fetched_at": "2026-11-01T00:00:01Z", "byte_size": 1710, "sha256": "abababababababababababababababababababababababababababababababab", "outcome": "ok", "cached": false},
+    {"id": "R2", "tool": "github_repo", "url_requested": "https://api.github.com/repos/LineageOS/android_device_oneplus_enchilada", "url_final": "https://api.github.com/repos/LineageOS/android_device_oneplus_enchilada", "status": 200, "fetched_at": "2026-11-01T00:00:02Z", "byte_size": 7147, "sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", "outcome": "ok", "cached": false},
+    {"id": "R3", "tool": "pmos_page", "url_requested": "https://wiki.nura.eco/wiki/OnePlus_6_(oneplus-enchilada)", "url_final": "https://wiki.nura.eco/wiki/OnePlus_6_(oneplus-enchilada)", "status": 200, "fetched_at": "2026-11-01T00:00:03Z", "byte_size": 65537, "sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef", "outcome": "ok", "cached": false}
+  ],
+  "facts": [
+    {"id": "F1", "topic": "lineage", "name": "lineage.support", "status": "found", "reason": null, "subject_codename": "enchilada", "fetch_ids": ["R1"], "value": {"support": "current", "versions": ["22.2"], "maintainers": ["LuK1337"]}},
+    {"id": "F2", "topic": "repos", "name": "repos.device_tree", "status": "found", "reason": null, "subject_codename": "enchilada", "fetch_ids": ["R1", "R2"], "value": {"repos": [{"full_name": "LineageOS/android_device_oneplus_enchilada", "default_branch": "lineage-24.0", "pushed_at": "2026-10-30T15:58:02Z", "archived": false, "linked_by": "R1"}]}},
+    {"id": "F3", "topic": "repos", "name": "repos.kernel", "status": "none_found", "reason": null, "subject_codename": "enchilada", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F4", "topic": "repos", "name": "repos.vendor", "status": "none_found", "reason": null, "subject_codename": "enchilada", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F5", "topic": "repos", "name": "repos.candidates", "status": "unknown", "reason": "not_fetched", "subject_codename": "enchilada", "fetch_ids": [], "value": {"repos": []}},
+    {"id": "F6", "topic": "ai", "name": "ai.candidates", "status": "unknown", "reason": "not_fetched", "subject_codename": "enchilada", "fetch_ids": [], "value": {"models": []}},
+    {"id": "F7", "topic": "pmos", "name": "pmos.status", "status": "found", "reason": null, "subject_codename": "enchilada", "fetch_ids": ["R3"], "value": {"status": "listed", "title": "OnePlus 6 (oneplus-enchilada)", "url": "https://wiki.nura.eco/wiki/OnePlus_6_(oneplus-enchilada)"}},
+    {"id": "F8", "topic": "stock_firmware", "name": "stock_firmware", "status": "found", "reason": null, "subject_codename": "enchilada", "fetch_ids": [], "value": {"coverage": "not_covered"}},
+    {"id": "F9", "topic": "treble_gsi", "name": "treble_gsi", "status": "found", "reason": null, "subject_codename": "enchilada", "fetch_ids": [], "value": {"coverage": "not_covered"}}
+  ],
+  "notes": {"text": "Enchilada looks supported (F1, F2).", "cited_ids": ["F1", "F2"], "missing_ids": [], "label": "model explanation, not checked"}
+}

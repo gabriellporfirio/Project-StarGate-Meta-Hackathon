@@ -1,0 +1,32 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.files",
+      "path": "files.apk",
+      "service": "files",
+      "sha256": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [],
+  "assistant_manifest_sha256": null,
+  "build_id": "m4a-example-missing-launcher",
+  "labels": [],
+  "model_delivery": "none",
+  "model_files": null,
+  "model_payload_path": null,
+  "plan_sha256": "4b35ae2f104f512446f10357edfb5cafafdb6432fa517bd00bce69a8d854caf1",
+  "route": "not_yet",
+  "runtime_version": null,
+  "schema_version": "build-v1",
+  "selection": [
+    "files"
+  ],
+  "selection_result": "fits",
+  "unresolved": [
+    {
+      "area": "image_size",
+      "detail": "example unresolved check"
+    }
+  ]
+}

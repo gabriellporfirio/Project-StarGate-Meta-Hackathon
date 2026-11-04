@@ -1,0 +1,26 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-10-30T12:00:00Z",
+  "facts": {
+    "identity.model": {
+      "status": "conflicting",
+      "value": null,
+      "unit": null,
+      "candidates": [
+        {
+          "value": "Only One",
+          "evidence": [
+            {
+              "probe_id": "getprop-ro.product.model",
+              "command": "getprop ro.product.model",
+              "excerpt": "Only One",
+              "observed_at": "2026-10-30T12:00:01Z"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

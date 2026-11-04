@@ -1,0 +1,60 @@
+{
+  "schema_version": "catalog-v1",
+  "models": [
+    {
+      "id": "smollm2-135m-instruct",
+      "source": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "revision": "main",
+      "files": [
+        {"name": "model.safetensors", "bytes": 269060552}
+      ],
+      "format": "safetensors, original published weights; not a phone-ready build, M4 picks the real file",
+      "runtime": "llama.cpp (planning estimate)",
+      "abi": "arm64-v8a",
+      "licence": "apache-2.0",
+      "estimates": ["runtime", "abi"],
+      "provenance": {
+        "kind": "sourced",
+        "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/tree/main",
+        "date": "2026-11-01"
+      }
+    },
+    {
+      "id": "smollm2-360m-instruct",
+      "source": "HuggingFaceTB/SmolLM2-360M-Instruct",
+      "revision": "main",
+      "files": [
+        {"name": "model.safetensors", "bytes": 723674912}
+      ],
+      "format": "safetensors, original published weights; not a phone-ready build, M4 picks the real file",
+      "runtime": "llama.cpp (planning estimate)",
+      "abi": "arm64-v8a",
+      "licence": "apache-2.0",
+      "estimates": ["runtime", "abi"],
+      "provenance": {
+        "kind": "sourced",
+        "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/tree/main",
+        "date": "2026-11-01"
+      }
+    },
+    {
+      "id": "llama-3.2-1b-instruct-spinquant-int4-eo8-pte",
+      "source": "executorch-community/Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8-ET",
+      "revision": "911221e0f49d3354cbd4697a9c09feee25cadec7",
+      "files": [
+        {"name": "Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte", "bytes": 1135951488},
+        {"name": "tokenizer.model", "bytes": 2183982}
+      ],
+      "format": "pte + tokenizer.model; ready-made ExecuTorch SpinQuant INT4 export; loads through LlmModule with file paths",
+      "runtime": "executorch 1.5.1 (AAR)",
+      "abi": "arm64-v8a",
+      "licence": "llama3.2",
+      "estimates": ["runtime", "abi"],
+      "provenance": {
+        "kind": "sourced",
+        "url": "https://huggingface.co/executorch-community/Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8-ET",
+        "date": "2026-11-01"
+      }
+    }
+  ]
+}

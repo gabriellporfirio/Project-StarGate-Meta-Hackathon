@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stargate.local/schemas/install-draft-v1.json",
+  "title": "install-draft-v1 (descriptive; stargate/install.py is authoritative)",
+  "type": "object",
+  "required": ["schema_version", "steps", "erase_warning", "changes", "do_not_install"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "install-draft-v1"},
+    "steps": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/step"}
+    },
+    "erase_warning": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["text", "citation"],
+          "additionalProperties": false,
+          "properties": {
+            "text": {"type": "string", "minLength": 1},
+            "citation": {"$ref": "#/$defs/citation"}
+          }
+        }
+      ]
+    },
+    "changes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/change"}
+    },
+    "do_not_install": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["reason", "citation"],
+          "additionalProperties": false,
+          "properties": {
+            "reason": {"type": "string", "minLength": 1},
+            "citation": {"$ref": "#/$defs/citation"}
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["type", "partition", "mode", "reason", "citation", "conditional"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["reboot_bootloader", "check_oem_unlocking", "unlock_bootloader", "reboot_fastbootd", "check_is_logical", "stop_for_check", "flash", "wipe_data", "reboot_system"]
+        },
+        "partition": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "enum": ["system"]}
+          ]
+        },
+        "mode": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "enum": ["bootloader", "fastbootd"]}
+          ]
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "citation": {"$ref": "#/$defs/citation"},
+        "conditional": {"type": "boolean"}
+      }
+    },
+    "change": {
+      "type": "object",
+      "required": ["kind", "detail", "replacement", "reason", "citation"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"type": "string", "enum": ["removed", "added", "changed"]},
+        "detail": {"type": "string", "minLength": 1},
+        "replacement": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1}]},
+        "reason": {"type": "string", "minLength": 1},
+        "citation": {"$ref": "#/$defs/citation"}
+      }
+    },
+    "citation": {
+      "type": "object",
+      "required": ["rule", "fetch_id", "quote"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "type": "string",
+          "enum": ["I-FORMAT", "I-QUOTE", "I-TYPES", "I-STATE", "I-DYNAMIC", "I-UNKNOWN", "I-UNLOCK", "I-WIPE"]
+        },
+        "fetch_id": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1}]},
+        "quote": {"oneOf": [{"type": "null"}, {"type": "string"}]}
+      }
+    }
+  }
+}

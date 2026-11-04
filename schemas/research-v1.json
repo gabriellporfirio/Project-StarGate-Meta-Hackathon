@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stargate.local/schemas/research-v1.json",
+  "title": "research-v1 (descriptive; stargate/research.py is authoritative)",
+  "description": "M2 research report: fetch records (code), facts (code) and model notes (display only).",
+  "type": "object",
+  "required": ["schema_version", "subject", "mode", "provenance", "state", "coverage", "steps", "fetches", "facts", "notes"],
+  "properties": {
+    "schema_version": {"const": "research-v1"},
+    "subject": {
+      "type": "object",
+      "required": ["manufacturer", "model", "codename"],
+      "properties": {
+        "manufacturer": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]},
+        "codename": {"type": "string", "minLength": 1}
+      }
+    },
+    "mode": {"enum": ["agent", "pipeline"]},
+    "provenance": {"enum": ["live", "replay", "synthetic"]},
+    "state": {
+      "type": "object",
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {"enum": ["complete", "partial"]},
+        "reason": {"type": ["string", "null"]}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["lineage", "repos", "ai", "pmos", "stock_firmware", "treble_gsi"],
+      "additionalProperties": {"enum": ["found", "none_found", "unknown", "not_covered"]}
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["seq", "kind", "detail"],
+        "properties": {
+          "seq": {"type": "integer", "minimum": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "detail": {"type": "string"}
+        }
+      }
+    },
+    "fetches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "tool", "url_requested", "url_final", "status", "fetched_at", "byte_size", "sha256", "outcome", "cached"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^R[1-9][0-9]*$"},
+          "tool": {"enum": ["lineage_device", "github_repo", "github_search", "hf_model_search", "hf_model", "hf_model_files", "pmos_page"]},
+          "url_requested": {"type": "string"},
+          "url_final": {"type": "string"},
+          "status": {"type": ["integer", "null"]},
+          "fetched_at": {"type": "string", "format": "date-time"},
+          "byte_size": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^([0-9a-f]{64})?$"},
+          "outcome": {"enum": ["ok", "denied", "rate_limited", "timeout", "too_large", "refused", "error"]},
+          "cached": {"type": "boolean"}
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "topic", "name", "status", "subject_codename", "fetch_ids", "value"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^F[1-9][0-9]*$"},
+          "topic": {"enum": ["lineage", "repos", "ai", "pmos", "stock_firmware", "treble_gsi"]},
+          "name": {"enum": ["lineage.support", "repos.device_tree", "repos.kernel", "repos.vendor", "repos.candidates", "ai.candidates", "pmos.status", "stock_firmware", "treble_gsi"]},
+          "status": {"enum": ["found", "none_found", "unknown"]},
+          "reason": {"type": ["string", "null"]},
+          "subject_codename": {"type": "string"},
+          "fetch_ids": {"type": "array", "items": {"type": "string"}},
+          "value": {"type": "object"}
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "required": ["text", "cited_ids", "missing_ids", "label"],
+      "properties": {
+        "text": {"type": "string"},
+        "cited_ids": {"type": "array", "items": {"type": "string"}},
+        "missing_ids": {"type": "array", "items": {"type": "string"}},
+        "label": {"const": "model explanation, not checked"}
+      }
+    }
+  }
+}

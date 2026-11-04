@@ -1,0 +1,365 @@
+{
+  "accepted_steps": [
+    {
+      "citation": {
+        "fetch_id": null,
+        "quote": null,
+        "rule": "I-STATE"
+      },
+      "conditional": false,
+      "mode": null,
+      "partition": null,
+      "reason": "leave the system",
+      "type": "reboot_bootloader"
+    },
+    {
+      "citation": {
+        "fetch_id": "R1",
+        "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+        "rule": "I-DYNAMIC"
+      },
+      "conditional": false,
+      "mode": null,
+      "partition": null,
+      "reason": "dynamic partitions need it",
+      "type": "reboot_fastbootd"
+    },
+    {
+      "citation": {
+        "fetch_id": "R1",
+        "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+        "rule": "I-DYNAMIC"
+      },
+      "conditional": false,
+      "mode": "fastbootd",
+      "partition": "system",
+      "reason": "flash system where it belongs",
+      "type": "flash"
+    },
+    {
+      "citation": {
+        "fetch_id": null,
+        "quote": null,
+        "rule": "I-STATE"
+      },
+      "conditional": false,
+      "mode": null,
+      "partition": null,
+      "reason": "fresh data",
+      "type": "wipe_data"
+    },
+    {
+      "citation": {
+        "fetch_id": null,
+        "quote": null,
+        "rule": "I-STATE"
+      },
+      "conditional": false,
+      "mode": null,
+      "partition": null,
+      "reason": "boot the new system",
+      "type": "reboot_system"
+    }
+  ],
+  "drafts": [
+    {
+      "content": "{\"schema_version\": \"install-draft-v1\", \"steps\": [{\"type\": \"reboot_bootloader\", \"partition\": null, \"mode\": null, \"reason\": \"leave the system\", \"citation\": {\"rule\": \"I-STATE\", \"fetch_id\": null, \"quote\": null}, \"conditional\": false}, {\"type\": \"reboot_fastbootd\", \"partition\": null, \"mode\": null, \"reason\": \"dynamic partitions need it\", \"citation\": {\"rule\": \"I-DYNAMIC\", \"fetch_id\": \"R1\", \"quote\": \"The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.\"}, \"conditional\": false}, {\"type\": \"flash\", \"partition\": \"system\", \"mode\": \"fastbootd\", \"reason\": \"flash system where it belongs\", \"citation\": {\"rule\": \"I-DYNAMIC\", \"fetch_id\": \"R1\", \"quote\": \"The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.\"}, \"conditional\": false}, {\"type\": \"wipe_data\", \"partition\": null, \"mode\": null, \"reason\": \"fresh data\", \"citation\": {\"rule\": \"I-STATE\", \"fetch_id\": null, \"quote\": null}, \"conditional\": false}, {\"type\": \"reboot_system\", \"partition\": null, \"mode\": null, \"reason\": \"boot the new system\", \"citation\": {\"rule\": \"I-STATE\", \"fetch_id\": null, \"quote\": null}, \"conditional\": false}], \"erase_warning\": null, \"changes\": [{\"kind\": \"removed\", \"detail\": \"Flash the system image from the bootloader.\", \"replacement\": null, \"reason\": \"the bootloader cannot flash dynamic partitions\", \"citation\": {\"rule\": \"I-DYNAMIC\", \"fetch_id\": \"R1\", \"quote\": \"The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.\"}}, {\"kind\": \"added\", \"detail\": \"Reboot to fastbootd, then flash system.\", \"replacement\": null, \"reason\": \"dynamic partitions flash in fastbootd\", \"citation\": {\"rule\": \"I-DYNAMIC\", \"fetch_id\": \"R1\", \"quote\": \"The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.\"}}], \"do_not_install\": null}",
+      "finish_reason": "stop",
+      "index": 1,
+      "model": {
+        "id": "fake-model",
+        "provider": "fake"
+      },
+      "parsed": {
+        "changes": [
+          {
+            "citation": {
+              "fetch_id": "R1",
+              "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+              "rule": "I-DYNAMIC"
+            },
+            "detail": "Flash the system image from the bootloader.",
+            "kind": "removed",
+            "reason": "the bootloader cannot flash dynamic partitions",
+            "replacement": null
+          },
+          {
+            "citation": {
+              "fetch_id": "R1",
+              "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+              "rule": "I-DYNAMIC"
+            },
+            "detail": "Reboot to fastbootd, then flash system.",
+            "kind": "added",
+            "reason": "dynamic partitions flash in fastbootd",
+            "replacement": null
+          }
+        ],
+        "do_not_install": null,
+        "erase_warning": null,
+        "schema_version": "install-draft-v1",
+        "steps": [
+          {
+            "citation": {
+              "fetch_id": null,
+              "quote": null,
+              "rule": "I-STATE"
+            },
+            "conditional": false,
+            "mode": null,
+            "partition": null,
+            "reason": "leave the system",
+            "type": "reboot_bootloader"
+          },
+          {
+            "citation": {
+              "fetch_id": "R1",
+              "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+              "rule": "I-DYNAMIC"
+            },
+            "conditional": false,
+            "mode": null,
+            "partition": null,
+            "reason": "dynamic partitions need it",
+            "type": "reboot_fastbootd"
+          },
+          {
+            "citation": {
+              "fetch_id": "R1",
+              "quote": "The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted.",
+              "rule": "I-DYNAMIC"
+            },
+            "conditional": false,
+            "mode": "fastbootd",
+            "partition": "system",
+            "reason": "flash system where it belongs",
+            "type": "flash"
+          },
+          {
+            "citation": {
+              "fetch_id": null,
+              "quote": null,
+              "rule": "I-STATE"
+            },
+            "conditional": false,
+            "mode": null,
+            "partition": null,
+            "reason": "fresh data",
+            "type": "wipe_data"
+          },
+          {
+            "citation": {
+              "fetch_id": null,
+              "quote": null,
+              "rule": "I-STATE"
+            },
+            "conditional": false,
+            "mode": null,
+            "partition": null,
+            "reason": "boot the new system",
+            "type": "reboot_system"
+          }
+        ]
+      },
+      "rule_results": [
+        {
+          "reasons": [],
+          "rule": "I-FORMAT",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-QUOTE",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-TYPES",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-STATE",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-DYNAMIC",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-UNKNOWN",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-UNLOCK",
+          "status": "pass"
+        },
+        {
+          "reasons": [],
+          "rule": "I-WIPE",
+          "status": "pass"
+        }
+      ],
+      "usage": {
+        "completion_tokens": 0,
+        "prompt_tokens": 0,
+        "reasoning_tokens": 0
+      }
+    }
+  ],
+  "facts_used": [
+    {
+      "id": "identity.manufacturer",
+      "status": "measured",
+      "value": "Acme"
+    },
+    {
+      "id": "identity.model",
+      "status": "measured",
+      "value": "Acme Flagship X"
+    },
+    {
+      "id": "identity.device_codename",
+      "status": "measured",
+      "value": "acme_fx"
+    },
+    {
+      "id": "identity.android_release",
+      "status": "measured",
+      "value": "14"
+    },
+    {
+      "id": "boot.bootloader_locked",
+      "status": "inferred",
+      "value": false
+    },
+    {
+      "id": "boot.oem_unlock_supported",
+      "status": "measured",
+      "value": true
+    },
+    {
+      "id": "boot.oem_unlock_allowed",
+      "status": "measured",
+      "value": true
+    },
+    {
+      "id": "boot.ab_slots",
+      "status": "measured",
+      "value": true
+    },
+    {
+      "id": "boot.dynamic_partitions",
+      "status": "measured",
+      "value": true
+    }
+  ],
+  "fetch_records": [
+    {
+      "byte_size": 247,
+      "cached": false,
+      "excerpt": {
+        "extraction_version": "sections-v1",
+        "ranges": [
+          [
+            0,
+            199
+          ]
+        ],
+        "sha256": "80b23489376d18a66cab354aaeff3722baed78046b9419ba5dac28c50bb1eefd",
+        "text": "SYNTHETIC EXAMPLE EXCERPT, not from Android. Dynamic partitions The bootloader must not allow the flashing or erasing of dynamic partitions and must return an error if these operations are attempted."
+      },
+      "fetched_at": "2026-11-02T14:35:31Z",
+      "id": "R1",
+      "outcome": "ok",
+      "sha256": "9316e3a52ea5c0e0e9bdf4a25c3ee6298c69f42836866d89b79174713cb8df5a",
+      "status": 200,
+      "tool": "android_page",
+      "url_final": "https://source.android.com/docs/core/architecture/bootloader/fastbootd",
+      "url_requested": "https://source.android.com/docs/core/architecture/bootloader/fastbootd"
+    },
+    {
+      "byte_size": 248,
+      "cached": false,
+      "excerpt": {
+        "extraction_version": "sections-v1",
+        "ranges": [
+          [
+            0,
+            233
+          ]
+        ],
+        "sha256": "bc8d958dfdf20a49ca56758d4746101a7c659bee3ee8164ceec5869a46474f16",
+        "text": "SYNTHETIC EXAMPLE EXCERPT, not from Android. If OEM unlocking remains unavailable, your device might be SIM locked by your carrier and the bootloader can't be unlocked. For privacy reasons, unlocking the bootloader deletes user data."
+      },
+      "fetched_at": "2026-11-02T14:35:31Z",
+      "id": "R2",
+      "outcome": "ok",
+      "sha256": "fe06ceca0b8aa2a4e384c19c4aa8f99396c2483fb2b5ee48fd3ee2cc6c27975f",
+      "status": 200,
+      "tool": "android_page",
+      "url_final": "https://source.android.com/docs/setup/test/running",
+      "url_requested": "https://source.android.com/docs/setup/test/running"
+    }
+  ],
+  "inputs": {
+    "pages": [
+      {
+        "provenance": "synthetic",
+        "sha256": "9316e3a52ea5c0e0e9bdf4a25c3ee6298c69f42836866d89b79174713cb8df5a",
+        "url": "https://source.android.com/docs/core/architecture/bootloader/fastbootd"
+      },
+      {
+        "provenance": "synthetic",
+        "sha256": "fe06ceca0b8aa2a4e384c19c4aa8f99396c2483fb2b5ee48fd3ee2cc6c27975f",
+        "url": "https://source.android.com/docs/setup/test/running"
+      }
+    ],
+    "plan": {
+      "provenance": "synthetic",
+      "sha256": "4a9da6704e50463c3b2aa4f84aaaa234a7010d28a4516abf3f28e591c0ac154b"
+    },
+    "profile": {
+      "provenance": "synthetic",
+      "sha256": "7477e29e26b0d1d8c84d28fe26577cfab8b8d27868a9336dbe20cb13ce272f8e"
+    },
+    "starting_steps": {
+      "provenance": "sourced",
+      "sha256": "04b93eaabf7c81be97a518f630e2f3d2f91c9b9e49a7712f4ef717e16f462997"
+    }
+  },
+  "model": {
+    "id": "fake-model",
+    "provider": "fake"
+  },
+  "provenance": "synthetic",
+  "result": "accepted",
+  "runs": "never",
+  "schema_version": "install-plan-v1",
+  "subject": {
+    "codename": "acme_fx",
+    "manufacturer": "Acme",
+    "model": "Acme Flagship X"
+  },
+  "unresolved": [
+    {
+      "area": "image_compatibility",
+      "detail": "Whether this image suits this phone was not checked."
+    },
+    {
+      "area": "signing_vbmeta",
+      "detail": "Signing and verified-boot (vbmeta) handling was not decided."
+    },
+    {
+      "area": "ab_slot",
+      "detail": "Which A/B slot to flash was not chosen."
+    },
+    {
+      "area": "m7_prerequisites",
+      "detail": "Every other M7 prerequisite (exact commands, recovery, risks) is still open."
+    }
+  ]
+}

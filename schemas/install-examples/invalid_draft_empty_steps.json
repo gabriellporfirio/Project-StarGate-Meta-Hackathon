@@ -1,0 +1,1 @@
+{"changes": [{"citation": {"fetch_id": null, "quote": null, "rule": "I-STATE"}, "detail": "Reboot to fastbootd, then flash.", "kind": "added", "reason": "test change", "replacement": null}], "do_not_install": null, "erase_warning": null, "schema_version": "install-draft-v1", "steps": []}

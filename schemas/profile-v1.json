@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/stargate/profile-v1.json",
+  "title": "StarGate device profile v1 (descriptive)",
+  "description": "Descriptive JSON Schema for profile-v1. The authoritative validator is stargate/profile.py (standard library only); this file is kept consistent with it. See docs/probes.md for the authority statement.",
+  "type": "object",
+  "required": ["schema_version", "simulated", "fixture_name", "created_at", "facts"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "profile-v1"},
+    "simulated": {"type": "boolean"},
+    "fixture_name": {"type": ["string", "null"]},
+    "created_at": {
+      "type": "string",
+      "description": "UTC ISO 8601, e.g. 2026-10-30T12:00:00Z"
+    },
+    "facts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "identity.manufacturer",
+          "identity.model",
+          "identity.device_codename",
+          "identity.android_release",
+          "identity.sdk_level",
+          "identity.platform",
+          "boot.bootloader_locked",
+          "boot.oem_unlock_supported",
+          "boot.oem_unlock_allowed",
+          "boot.verified_boot_state",
+          "boot.ab_slots",
+          "boot.dynamic_partitions",
+          "boot.treble_enabled",
+          "boot.vndk_version",
+          "resources.ram_total",
+          "resources.data_free",
+          "resources.cpu_abis",
+          "resources.cpu_cores",
+          "kernel.release",
+          "kernel.config.tun",
+          "kernel.config.overlay_fs",
+          "kernel.config.ext4",
+          "kernel.config.exfat",
+          "capacity.system_image_max",
+          "runtime.tun_usable",
+          "runtime.overlay_fs_usable",
+          "runtime.ext4_usable",
+          "runtime.exfat_usable"
+        ]
+      },
+      "additionalProperties": {"$ref": "#/$defs/fact"}
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "required": ["status", "value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["measured", "inferred", "unknown", "conflicting"]},
+        "value": {
+          "description": "Typed per fact ID; null when unknown/conflicting. Enforced by stargate/profile.py."
+        },
+        "unit": {"enum": ["bytes", "count", null]},
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "unknown_reason": {
+          "enum": [
+            "not_exposed",
+            "property_missing",
+            "permission_denied",
+            "timeout",
+            "output_too_large",
+            "malformed_output",
+            "not_probed_in_m1",
+            "deferred"
+          ]
+        },
+        "inference": {
+          "type": "object",
+          "required": ["rule_id", "inputs"],
+          "additionalProperties": false,
+          "properties": {
+            "rule_id": {"type": "string", "minLength": 1},
+            "inputs": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["value", "evidence"],
+            "additionalProperties": false,
+            "properties": {
+              "value": {},
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"$ref": "#/$defs/evidence"}
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "measured"}}},
+          "then": {"required": ["evidence"]}
+        },
+        {
+          "if": {"properties": {"status": {"const": "unknown"}}},
+          "then": {"required": ["unknown_reason"]}
+        },
+        {
+          "if": {"properties": {"status": {"const": "inferred"}}},
+          "then": {"required": ["inference"]}
+        },
+        {
+          "if": {"properties": {"status": {"const": "conflicting"}}},
+          "then": {"required": ["candidates"]}
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["probe_id", "command", "excerpt", "observed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "probe_id": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1},
+        "excerpt": {"type": "string", "maxLength": 200},
+        "observed_at": {"type": "string"}
+      }
+    }
+  }
+}

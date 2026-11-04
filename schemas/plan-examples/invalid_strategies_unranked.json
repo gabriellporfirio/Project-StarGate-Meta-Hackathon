@@ -1,0 +1,326 @@
+{
+  "build_allowed": "emulator_only",
+  "explanation_status": {
+    "code": null,
+    "model": null,
+    "reason": null,
+    "status": "not_requested"
+  },
+  "fit": {
+    "checks": [
+      {
+        "estimated": true,
+        "fact": "resources.ram_total",
+        "have_bytes": 12884901888,
+        "name": "memory",
+        "needed_bytes": 3259289152,
+        "reason": "",
+        "status": "fits"
+      },
+      {
+        "estimated": true,
+        "fact": "resources.data_free",
+        "have_bytes": 107374182400,
+        "name": "storage",
+        "needed_bytes": 1090676512,
+        "reason": "",
+        "status": "fits"
+      },
+      {
+        "estimated": true,
+        "fact": "resources.cpu_abis",
+        "have_abis": [
+          "arm64-v8a",
+          "armeabi-v7a",
+          "armeabi"
+        ],
+        "name": "cpu",
+        "needed_abi": "arm64-v8a",
+        "reason": "",
+        "status": "fits"
+      },
+      {
+        "estimated": false,
+        "fact": "kernel.config.*",
+        "name": "kernel",
+        "reason": "not needed yet",
+        "status": "not_needed"
+      }
+    ],
+    "estimated": true,
+    "model_choice": {
+      "model_id": "smollm2-360m-instruct",
+      "reasons": [
+        "smollm2-360m-instruct fits and has the largest total file bytes (723674912)"
+      ],
+      "status": "chosen"
+    },
+    "models": [
+      {
+        "checks": [
+          {
+            "estimated": true,
+            "fact": "resources.ram_total",
+            "have_bytes": 12884901888,
+            "name": "memory",
+            "needed_bytes": 2350060432,
+            "reason": "",
+            "status": "fits"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.data_free",
+            "have_bytes": 107374182400,
+            "name": "storage",
+            "needed_bytes": 636062152,
+            "reason": "",
+            "status": "fits"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.cpu_abis",
+            "have_abis": [
+              "arm64-v8a",
+              "armeabi-v7a",
+              "armeabi"
+            ],
+            "name": "cpu",
+            "needed_abi": "arm64-v8a",
+            "reason": "",
+            "status": "fits"
+          }
+        ],
+        "id": "smollm2-135m-instruct",
+        "total_bytes": 269060552,
+        "verdict": "fits"
+      },
+      {
+        "checks": [
+          {
+            "estimated": true,
+            "fact": "resources.ram_total",
+            "have_bytes": 12884901888,
+            "name": "memory",
+            "needed_bytes": 3259289152,
+            "reason": "",
+            "status": "fits"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.data_free",
+            "have_bytes": 107374182400,
+            "name": "storage",
+            "needed_bytes": 1090676512,
+            "reason": "",
+            "status": "fits"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.cpu_abis",
+            "have_abis": [
+              "arm64-v8a",
+              "armeabi-v7a",
+              "armeabi"
+            ],
+            "name": "cpu",
+            "needed_abi": "arm64-v8a",
+            "reason": "",
+            "status": "fits"
+          }
+        ],
+        "id": "smollm2-360m-instruct",
+        "total_bytes": 723674912,
+        "verdict": "fits"
+      }
+    ],
+    "reasons": [],
+    "result": "fits",
+    "services": [
+      "files",
+      "assistant"
+    ]
+  },
+  "handoff": {
+    "build_allowed": "emulator_only",
+    "candidate_strategies": [
+      "community_build",
+      "generic_system_image",
+      "linux",
+      "on_top_of_android"
+    ],
+    "model": {
+      "files": [
+        {
+          "bytes": 723674912,
+          "name": "model.safetensors"
+        }
+      ],
+      "format": "safetensors, original published weights; not a phone-ready build, M4 picks the real file",
+      "id": "smollm2-360m-instruct",
+      "revision": "main",
+      "runtime": "llama.cpp (planning estimate)",
+      "source": "HuggingFaceTB/SmolLM2-360M-Instruct",
+      "total_bytes": 723674912
+    },
+    "model_reason": "smollm2-360m-instruct fits and has the largest total file bytes (723674912)",
+    "provenance": {
+      "catalog": "sourced",
+      "profile": "synthetic",
+      "research": "synthetic"
+    },
+    "reasons": [],
+    "selection_result": "fits",
+    "services": [
+      "files",
+      "assistant"
+    ],
+    "unresolved": [
+      {
+        "area": "image_size",
+        "detail": "capacity.system_image_max is always unknown in M3 (M1 does not collect it); not checked yet."
+      },
+      {
+        "area": "strategy",
+        "detail": "The tree still builds.",
+        "strategy": "community_build"
+      },
+      {
+        "area": "strategy",
+        "detail": "The vendor files are available.",
+        "strategy": "community_build"
+      },
+      {
+        "area": "strategy",
+        "detail": "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them).",
+        "strategy": "generic_system_image"
+      },
+      {
+        "area": "strategy",
+        "detail": "Which features of the listed port work is not checked.",
+        "strategy": "linux"
+      },
+      {
+        "area": "strategy",
+        "detail": "The app modules do not exist yet (they are built in M4).",
+        "strategy": "on_top_of_android"
+      }
+    ]
+  },
+  "inputs": {
+    "catalog": {
+      "provenance": "sourced",
+      "sha256": "4b35ae2f104f512446f10357edfb5cafafdb6432fa517bd00bce69a8d854caf1"
+    },
+    "profile": {
+      "provenance": "synthetic",
+      "sha256": "f4c813bc5e7214fd0c1597d4231abaa291e08576e763fad1814fabc67f49f69a"
+    },
+    "research": {
+      "provenance": "synthetic",
+      "sha256": "f59f740b8173429b6b754b20f6f7c8d1b974cafeeabcea9cde292ad8905c700d"
+    }
+  },
+  "notes": null,
+  "provenance": "synthetic",
+  "rules": {
+    "fit_budgets": "a0d61fc0dba0252f30d16160a1b284e6e8453c2a0bb3f826cd139ef268b2a596",
+    "inference_rules": "5d4d6a39a781d4b3a40df441bcf1e9ce5ee8bdf0d296dc434400cada76d662cf",
+    "strategy_rules": "3d478810e0503c53ad60df39fd2c2d8212d22d3339a9f6c8120d93f98b26bcb3"
+  },
+  "schema_version": "plan-v1",
+  "selection_result": "fits",
+  "strategies": [
+    {
+      "blocker": null,
+      "id": "stock_rebuild",
+      "met": [],
+      "missing": [],
+      "open_checks": [],
+      "risks": [
+        "M3 does not judge stock rebuilds."
+      ],
+      "signing": "Unknown in M3.",
+      "status": "not_covered"
+    },
+    {
+      "blocker": null,
+      "id": "generic_system_image",
+      "met": [
+        "boot.treble_enabled",
+        "resources.cpu_abis",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them)."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "Some GSI hardware features may not work."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "linux",
+      "met": [
+        "pmos.status",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "Which features of the listed port work is not checked."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "A listed port page shows a page exists, not that the port works."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "on_top_of_android",
+      "met": [
+        "identity.sdk_level",
+        "resources.cpu_abis"
+      ],
+      "missing": [],
+      "open_checks": [
+        "The app modules do not exist yet (they are built in M4)."
+      ],
+      "risks": [
+        "The app modules do not exist yet; they are built in M4."
+      ],
+      "signing": "No bootloader change; stock verified boot is untouched.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "community_build",
+      "met": [
+        "lineage.support",
+        "repos.device_tree",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "The tree still builds.",
+        "The vendor files are available."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "A community tree may not build, and some hardware may not work."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    }
+  ],
+  "subject": {
+    "codename": "acme_fx",
+    "manufacturer": "Acme",
+    "model": "Acme Flagship X"
+  },
+  "unlock_state": "already_unlocked"
+}

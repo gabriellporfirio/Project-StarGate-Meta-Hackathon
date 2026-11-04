@@ -1,0 +1,28 @@
+{
+  "schema_version": "research-v1",
+  "subject": {"manufacturer": "ACME", "model": "SIMULATED Lp", "codename": "acme_lp"},
+  "mode": "pipeline",
+  "provenance": "synthetic",
+  "state": {"status": "complete", "reason": null},
+  "coverage": {"lineage": "found", "repos": "found", "ai": "none_found", "pmos": "none_found", "stock_firmware": "found", "treble_gsi": "found"},
+  "steps": [
+    {"seq": 1, "kind": "synthetic", "detail": "SIMULATED: hand-written for the locked fixture."}
+  ],
+  "fetches": [
+    {"id": "R1", "tool": "lineage_device", "url_requested": "https://example.com/simulated/lineage/acme_lp.yml", "url_final": "https://example.com/simulated/lineage/acme_lp.yml", "status": 200, "fetched_at": "2026-11-01T00:00:01Z", "byte_size": 1100, "sha256": "", "outcome": "ok", "cached": false},
+    {"id": "R2", "tool": "pmos_page", "url_requested": "https://example.com/simulated/pmos/acme_lp", "url_final": "https://example.com/simulated/pmos/acme_lp", "status": 404, "fetched_at": "2026-11-01T00:00:02Z", "byte_size": 100, "sha256": "", "outcome": "ok", "cached": false},
+    {"id": "R3", "tool": "github_repo", "url_requested": "https://example.com/simulated/github/LineageOS/android_device_acme_lp", "url_final": "https://example.com/simulated/github/LineageOS/android_device_acme_lp", "status": 200, "fetched_at": "2026-11-01T00:00:03Z", "byte_size": 2000, "sha256": "", "outcome": "ok", "cached": false}
+  ],
+  "facts": [
+    {"id": "F1", "topic": "lineage", "name": "lineage.support", "status": "found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": ["R1"], "value": {"support": "current", "versions": ["22.1"], "maintainers": ["simulated-maintainer"]}},
+    {"id": "F2", "topic": "repos", "name": "repos.device_tree", "status": "found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": ["R1", "R3"], "value": {"repos": [{"full_name": "LineageOS/android_device_acme_lp", "default_branch": "lineage-22.1", "pushed_at": null, "archived": false, "linked_by": "R3"}]}},
+    {"id": "F3", "topic": "repos", "name": "repos.kernel", "status": "none_found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F4", "topic": "repos", "name": "repos.vendor", "status": "none_found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": ["R1"], "value": {"repos": []}},
+    {"id": "F5", "topic": "repos", "name": "repos.candidates", "status": "none_found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": [], "value": {"repos": []}},
+    {"id": "F6", "topic": "ai", "name": "ai.candidates", "status": "none_found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": [], "value": {"models": []}},
+    {"id": "F7", "topic": "pmos", "name": "pmos.status", "status": "found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": ["R2"], "value": {"status": "not_found", "title": null, "url": null}},
+    {"id": "F8", "topic": "stock_firmware", "name": "stock_firmware", "status": "found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": [], "value": {"coverage": "not_covered"}},
+    {"id": "F9", "topic": "treble_gsi", "name": "treble_gsi", "status": "found", "reason": null, "subject_codename": "acme_lp", "fetch_ids": [], "value": {"coverage": "not_covered"}}
+  ],
+  "notes": {"text": "SIMULATED: synthetic research for the locked fixture (acme_lp).", "cited_ids": [], "missing_ids": [], "label": "model explanation, not checked"}
+}

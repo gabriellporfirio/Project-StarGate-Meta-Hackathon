@@ -1,0 +1,75 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.launcher",
+      "path": "apk/stargate-launcher.apk",
+      "service": "launcher",
+      "sha256": "ca3b940a66dfd098e2d08a7672a9235e7dff453adf0c276c5de96b02bdcf5e72",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.files",
+      "path": "apk/stargate-files.apk",
+      "service": "files",
+      "sha256": "91ea1098ae77b68fc72a5cbb41d6a6f334634b8b13322469c12d8c8c73bd32c3",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 1622147072,
+      "path": "system-stargate-files.img",
+      "sha256": "25f3b379df16333e60c40773249c95db36e2c8b924897d3ddc3779eb0cbce0ea"
+    },
+    {
+      "bytes": 637235632,
+      "path": "system-stargate-files.img.gz",
+      "sha256": "30d84ffe5161971624d5651b65ca03946db01da53b2ac4c6d5bcccdd31fb2be5"
+    }
+  ],
+  "assistant_manifest_sha256": null,
+  "build_id": "m4a-files-cc8f48d6",
+  "image_bytes": 1622147072,
+  "labels": [],
+  "model_files": null,
+  "partition_limit_bytes": 1622147072,
+  "plan_sha256": "cc8f48d644f59aad951b1ce2dc3305811425f0d1639f933fa209da7429dd2be7",
+  "route": "A",
+  "runtime_version": null,
+  "schema_version": "build-v1",
+  "selection": [
+    "files"
+  ],
+  "selection_result": "fits",
+  "unresolved": [
+    {
+      "area": "image_size",
+      "detail": "capacity.system_image_max is always unknown in M3 (M1 does not collect it); not checked yet."
+    },
+    {
+      "area": "strategy",
+      "detail": "The tree still builds.",
+      "strategy": "community_build"
+    },
+    {
+      "area": "strategy",
+      "detail": "The vendor files are available.",
+      "strategy": "community_build"
+    },
+    {
+      "area": "strategy",
+      "detail": "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them).",
+      "strategy": "generic_system_image"
+    },
+    {
+      "area": "strategy",
+      "detail": "Which features of the listed port work is not checked.",
+      "strategy": "linux"
+    },
+    {
+      "area": "strategy",
+      "detail": "The app modules do not exist yet (they are built in M4).",
+      "strategy": "on_top_of_android"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-10-30T12:00:00Z",
+  "facts": {
+    "identity.platform": {
+      "status": "inferred",
+      "value": "sun",
+      "unit": null,
+      "inference": {
+        "rule_id": "made-up-rule-v9",
+        "inputs": ["identity.device_codename"]
+      }
+    }
+  }
+}

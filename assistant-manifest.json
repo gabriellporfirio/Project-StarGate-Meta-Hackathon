@@ -1,0 +1,66 @@
+{
+  "assistant_apk": {
+    "package": "com.stargate.assistant",
+    "path": "out/assistant.apk",
+    "sha256": "1936549be6da213eb543be672a20fbf5f74c4f2a03de61939d4bbb1a1a95c187",
+    "version": "1.0"
+  },
+  "assistant_cloud_apk": {
+    "package": "com.stargate.assistant",
+    "path": "out-byok3/assistant-cloud.apk",
+    "sha256": "299ea77f7486a50eade7a6b11517f4953369f52770979b422bbcef56673e8765",
+    "version": "1.0"
+  },
+  "dependencies": [
+    {
+      "bytes": 1718956,
+      "name": "kotlin-stdlib",
+      "sha256": "8910cc238807d86ef550cb1f0b10dd5ed40b35a4ec1a52525f760aede84ead37",
+      "version": "1.9.23"
+    },
+    {
+      "bytes": 4349156,
+      "name": "fbjni",
+      "sha256": "7e319ae110ac5e5ef18904170aea5c3e753e915d196699d7fd39d36c8e1dfe36",
+      "version": "0.7.0"
+    },
+    {
+      "bytes": 3158,
+      "name": "nativeloader",
+      "sha256": "971ded86009c0ac56fb2275e128f852e7dcbc41a40cd799688f8a1aebde5195d",
+      "version": "0.10.5"
+    }
+  ],
+  "emulator_ram_bytes": 6442450944,
+  "files": [
+    {
+      "bytes": 1135951488,
+      "name": "Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte",
+      "sha256": "8715cdba9e91f6bede00cc5f2d6b12397b95225da5630c4972a8da03001cda3b"
+    },
+    {
+      "bytes": 2183982,
+      "name": "tokenizer.model",
+      "sha256": "82e9d31979e92ab929cd544440f129d9ecd797b69e327f80f17e1c50d5551b55"
+    }
+  ],
+  "licence_note": "Llama 3.2 Community License + ExecuTorch BSD; keep attribution notices with copies",
+  "min_android": "android-23",
+  "model_id": "llama-3.2-1b-instruct-spinquant-int4-eo8-pte",
+  "plan_path": "demo/plans/flagship-files-assistant.plan.json",
+  "plan_sha256": "1f8f2553fee50c71985d4988e466a943094230cccdf1d64e7f2e584ebb457418",
+  "ram_bytes_files_assistant": 4088210268,
+  "runtime_aar": {
+    "bytes": 7584141,
+    "maven": "org.pytorch:executorch-android:1.5.1",
+    "name": "executorch-android-1.5.1.aar",
+    "sha256": "d67d39eb51e00c996162e1d9898519a622918b20e4e18ea479f5fee4fe920e72"
+  },
+  "runtime_version": "executorch 1.5.1",
+  "source_revision": "911221e0f49d3354cbd4697a9c09feee25cadec7",
+  "target_path_route_a": "/product/stargate/model/Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte",
+  "target_path_route_b": "/sdcard/Android/data/com.stargate.assistant/files/model/Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte",
+  "tokenizer_path_route_a": "/product/stargate/model/tokenizer.model",
+  "tokenizer_path_route_b": "/sdcard/Android/data/com.stargate.assistant/files/model/tokenizer.model",
+  "tools_dir": "../m4b-tools"
+}

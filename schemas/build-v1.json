@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/stargate/build-v1.json",
+  "title": "StarGate build manifest v1 (descriptive)",
+  "description": "Descriptive JSON Schema for build-v1. The authoritative validator is stargate/build/manifest.py (standard library only); this file is kept consistent with it.",
+  "type": "object",
+  "required": ["schema_version", "plan_sha256", "selection", "selection_result", "route", "build_id", "labels", "artifacts", "apps", "model_files", "model_delivery", "model_payload_path", "runtime_version", "assistant_manifest_sha256", "unresolved"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "build-v1"},
+    "plan_sha256": {"$ref": "#/$defs/sha256"},
+    "selection": {"type": "array", "minItems": 1, "items": {"enum": ["files", "assistant"]}},
+    "selection_result": {"enum": ["fits", "unconfirmed"]},
+    "route": {"enum": ["A", "B", "not_yet"], "description": "A: image, B: configuration bundle, not_yet: Part 2 has not decided; a real build refuses it"},
+    "build_id": {"type": "string", "minLength": 1},
+    "labels": {"type": "array", "items": {"type": "string"}, "description": "Output labels, e.g. 'emulator experiment: fit not confirmed'"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "bytes", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["service", "package", "version", "path", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "service": {"enum": ["launcher", "files", "assistant"]},
+          "package": {"type": "string", "minLength": 1},
+          "version": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "model_files": {
+      "anyOf": [
+        {"type": "null", "description": "Null without the Assistant"},
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "bytes", "sha256", "target"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "bytes": {"type": "integer", "minimum": 0},
+              "sha256": {"$ref": "#/$defs/sha256"},
+              "target": {"type": "string", "minLength": 1, "description": "Target path on the device"}
+            }
+          }
+        }
+      ]
+    },
+    "model_delivery": {"enum": ["in_image", "after_boot", "none"], "description": "How the model is delivered: baked into the image, copied after boot (section 4d), or none without the Assistant"},
+    "model_payload_path": {"anyOf": [{"type": "string", "minLength": 1}, {"type": "null"}], "description": "Payload snapshot dir relative to the build outputs (section 4d); null unless a snapshot was made"},
+    "runtime_version": {"type": ["string", "null"]},
+    "assistant_manifest_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "image_bytes": {"anyOf": [{"type": "integer", "minimum": 0}, {"type": "null"}], "description": "Route A repacked image size in bytes; null elsewhere"},
+    "partition_limit_bytes": {"anyOf": [{"type": "integer", "minimum": 0}, {"type": "null"}], "description": "Route A partition limit the image size is checked against; null elsewhere"},
+    "unresolved": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["area", "detail"],
+        "properties": {
+          "area": {"type": "string"},
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-10-30T12:00:00Z",
+  "facts": {
+    "boot.vndk_version": {
+      "status": "unknown",
+      "value": null,
+      "unit": null,
+      "unknown_reason": "property_missing"
+    }
+  }
+}

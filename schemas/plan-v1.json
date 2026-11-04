@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/stargate/plan-v1.json",
+  "title": "StarGate plan v1 (descriptive)",
+  "description": "Descriptive JSON Schema for plan-v1. The authoritative validator is stargate/plan.py (standard library only); this file is kept consistent with it.",
+  "type": "object",
+  "required": ["schema_version", "subject", "inputs", "rules", "unlock_state", "strategies", "fit", "selection_result", "build_allowed", "explanation_status", "handoff", "notes", "provenance"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "plan-v1"},
+    "subject": {
+      "type": "object",
+      "required": ["codename", "manufacturer", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "codename": {"type": "string", "minLength": 1},
+        "manufacturer": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["profile", "research", "catalog"],
+      "additionalProperties": false,
+      "properties": {
+        "profile": {"$ref": "#/$defs/inputEntry"},
+        "research": {"anyOf": [{"$ref": "#/$defs/inputEntry"}, {"type": "null"}], "description": "Null when no research file was given"},
+        "catalog": {"$ref": "#/$defs/inputEntry"}
+      }
+    },
+    "rules": {
+      "type": "object",
+      "required": ["strategy_rules", "fit_budgets", "inference_rules"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy_rules": {"$ref": "#/$defs/sha256"},
+        "fit_budgets": {"$ref": "#/$defs/sha256"},
+        "inference_rules": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "unlock_state": {"enum": ["already_unlocked", "allowed_now", "not_allowed_now", "no_official_path", "unknown"]},
+    "strategies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/strategy"}
+    },
+    "fit": {"$ref": "#/$defs/fit"},
+    "selection_result": {"enum": ["fits", "unconfirmed", "refused"]},
+    "build_allowed": {"enum": ["emulator_only", "none"]},
+    "explanation_status": {
+      "type": "object",
+      "required": ["status", "code", "model", "reason"],
+      "properties": {
+        "status": {"enum": ["not_requested", "ok", "incomplete", "failed"]},
+        "code": {"anyOf": [{"enum": [2, 5]}, {"type": "null"}]},
+        "model": {"type": ["string", "null"]},
+        "reason": {"type": ["string", "null"], "description": "Why the explanation is incomplete; null otherwise"}
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "required": ["services", "model", "model_reason", "reasons", "candidate_strategies", "unresolved", "selection_result", "build_allowed", "provenance"],
+      "properties": {
+        "services": {"type": "array", "minItems": 1, "items": {"enum": ["files", "assistant"]}},
+        "model": {"anyOf": [{"$ref": "#/$defs/handoffModel"}, {"type": "null"}]},
+        "model_reason": {"type": "string"},
+        "reasons": {"type": "array", "items": {"type": "string"}, "description": "Every refusal/unknown reason; must equal the top-level fit reasons when refused"},
+        "candidate_strategies": {"type": "array", "items": {"type": "string"}},
+        "unresolved": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["area", "detail"],
+            "properties": {
+              "area": {"type": "string"},
+              "detail": {"type": "string"}
+            }
+          }
+        },
+        "selection_result": {"enum": ["fits", "unconfirmed", "refused"], "description": "Must equal the top-level selection_result"},
+        "build_allowed": {"enum": ["emulator_only", "none"], "description": "Must equal the top-level build_allowed; refused pairs with none only"},
+        "provenance": {
+          "type": "object",
+          "required": ["profile", "research", "catalog"],
+          "properties": {
+            "profile": {"type": "string"},
+            "research": {"type": ["string", "null"]},
+            "catalog": {"type": "string"}
+          }
+        }
+      }
+    },
+    "notes": {
+      "anyOf": [
+        {"type": "null", "description": "Null unless the explanation succeeded"},
+        {
+          "type": "object",
+          "required": ["text", "cited_ids", "missing_ids", "label"],
+          "properties": {
+            "text": {"type": "string"},
+            "cited_ids": {"type": "array", "items": {"type": "string"}},
+            "missing_ids": {"type": "array", "items": {"type": "string"}},
+            "label": {"enum": ["model explanation, not checked", "model explanation, cut short, not checked"]}
+          }
+        }
+      ]
+    },
+    "provenance": {"enum": ["live", "replay", "synthetic"], "description": "Overall label: synthetic if any input is synthetic, else replay if any is replayed, else live"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "inputEntry": {
+      "type": "object",
+      "required": ["sha256", "provenance"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "provenance": {"type": "string"}
+      }
+    },
+    "strategy": {
+      "type": "object",
+      "required": ["id", "status", "met", "blocker", "missing", "open_checks", "risks", "signing"],
+      "properties": {
+        "id": {"enum": ["community_build", "generic_system_image", "linux", "stock_rebuild", "on_top_of_android"]},
+        "status": {"enum": ["candidate", "blocked", "unknown", "not_covered"]},
+        "met": {"type": "array", "items": {"type": "string"}},
+        "blocker": {
+          "anyOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["fact", "value", "blocker_kind"],
+              "properties": {
+                "fact": {"type": "string"},
+                "blocker_kind": {"enum": ["current", "no_official_path", "unsupported"]}
+              }
+            }
+          ]
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["fact", "reason"],
+            "properties": {
+              "fact": {"type": "string"},
+              "reason": {"type": "string"}
+            }
+          }
+        },
+        "open_checks": {"type": "array", "items": {"type": "string"}},
+        "risks": {"type": "array", "items": {"type": "string"}},
+        "signing": {"type": "string"}
+      }
+    },
+    "fit": {
+      "type": "object",
+      "required": ["services", "result", "estimated", "checks", "models", "model_choice", "reasons"],
+      "properties": {
+        "services": {"type": "array", "minItems": 1, "items": {"enum": ["files", "assistant"]}},
+        "result": {"enum": ["fits", "unconfirmed", "refused"]},
+        "estimated": {"type": "boolean"},
+        "checks": {"type": "array", "items": {"$ref": "#/$defs/check"}},
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "verdict", "checks"],
+            "properties": {
+              "id": {"type": "string"},
+              "verdict": {"enum": ["fits", "does_not_fit", "unknown"]},
+              "checks": {"type": "array", "items": {"$ref": "#/$defs/check"}}
+            }
+          }
+        },
+        "model_choice": {
+          "type": "object",
+          "required": ["status", "model_id", "reasons"],
+          "properties": {
+            "status": {"enum": ["chosen", "unconfirmed", "refused", "unknown", "not_needed"]},
+            "model_id": {"type": ["string", "null"]},
+            "reasons": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "reasons": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": ["name", "status", "fact", "reason"],
+      "properties": {
+        "name": {"type": "string"},
+        "status": {"enum": ["fits", "does_not_fit", "unknown", "not_needed"]},
+        "fact": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    },
+    "handoffModel": {
+      "type": "object",
+      "required": ["id", "files", "total_bytes"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "source": {"type": ["string", "null"]},
+        "revision": {"type": ["string", "null"]},
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "bytes"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "bytes": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "format": {"type": ["string", "null"]},
+        "runtime": {"type": ["string", "null"]},
+        "total_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-11-01T00:00:00Z",
+  "facts": {
+    "boot.verified_boot_state": {
+      "status": "measured",
+      "value": "orange",
+      "unit": null,
+      "evidence": [
+        {
+          "probe_id": "getprop-ro.boot.verifiedbootstate",
+          "command": "getprop ro.boot.verifiedbootstate",
+          "excerpt": "orange",
+          "observed_at": "2026-11-01T00:00:01Z"
+        }
+      ]
+    },
+    "boot.bootloader_locked": {
+      "status": "inferred",
+      "value": false,
+      "unit": null,
+      "inference": {
+        "rule_id": "R-LOCK-FROM-VBS",
+        "inputs": ["boot.verified_boot_state"]
+      },
+      "evidence": [
+        {
+          "probe_id": "getprop-ro.boot.verifiedbootstate",
+          "command": "getprop ro.boot.verifiedbootstate",
+          "excerpt": "orange",
+          "observed_at": "2026-11-01T00:00:01Z"
+        }
+      ]
+    }
+  }
+}

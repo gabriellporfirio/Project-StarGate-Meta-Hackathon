@@ -1,0 +1,100 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.launcher",
+      "path": "apk/stargate-launcher.apk",
+      "service": "launcher",
+      "sha256": "0e57e4ac862f426310d7b103e59bfe3a987bb0ad17b5f10dc68780eb9266e79f",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.files",
+      "path": "apk/stargate-files.apk",
+      "service": "files",
+      "sha256": "6faad5f25eb99fcee1b48778ae5d1f412f54863398cadde74a160e37c9dcff0d",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.assistant",
+      "path": "apk/stargate-assistant.apk",
+      "service": "assistant",
+      "sha256": "1936549be6da213eb543be672a20fbf5f74c4f2a03de61939d4bbb1a1a95c187",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 1622147072,
+      "path": "system-stargate-files-assistant.img",
+      "sha256": "6f2ed5d670267e23ff1103808e5262be797293c68f20f275f37284bf06cc0f31"
+    },
+    {
+      "bytes": 654703016,
+      "path": "system-stargate-files-assistant.img.gz",
+      "sha256": "d8b05d2d76ebd7c444ad87aed772abf6d562f9f91cf2f5bdf5f8f8336822ef82"
+    }
+  ],
+  "assistant_manifest_sha256": "b6add2c59f06d15f49bbbd1e670bc7ee156747a14c96dc2e132b797c12bf98f1",
+  "build_id": "m4a-assistant-files-1f8f2553",
+  "image_bytes": 1622147072,
+  "labels": [
+    "apps in image; model added after boot"
+  ],
+  "model_delivery": "after_boot",
+  "model_files": [
+    {
+      "bytes": 1135951488,
+      "name": "Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte",
+      "sha256": "8715cdba9e91f6bede00cc5f2d6b12397b95225da5630c4972a8da03001cda3b",
+      "target": "/sdcard/Android/data/com.stargate.assistant/files/model/Llama-3.2-1B-Instruct-SpinQuant_INT4_EO8.pte"
+    },
+    {
+      "bytes": 2183982,
+      "name": "tokenizer.model",
+      "sha256": "82e9d31979e92ab929cd544440f129d9ecd797b69e327f80f17e1c50d5551b55",
+      "target": "/sdcard/Android/data/com.stargate.assistant/files/model/tokenizer.model"
+    }
+  ],
+  "model_payload_path": "model-payload",
+  "partition_limit_bytes": 1622147072,
+  "plan_sha256": "1f8f2553fee50c71985d4988e466a943094230cccdf1d64e7f2e584ebb457418",
+  "route": "A",
+  "runtime_version": "executorch 1.5.1",
+  "schema_version": "build-v1",
+  "selection": [
+    "files",
+    "assistant"
+  ],
+  "selection_result": "fits",
+  "unresolved": [
+    {
+      "area": "image_size",
+      "detail": "capacity.system_image_max is always unknown in M3 (M1 does not collect it); not checked yet."
+    },
+    {
+      "area": "strategy",
+      "detail": "The tree still builds.",
+      "strategy": "community_build"
+    },
+    {
+      "area": "strategy",
+      "detail": "The vendor files are available.",
+      "strategy": "community_build"
+    },
+    {
+      "area": "strategy",
+      "detail": "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them).",
+      "strategy": "generic_system_image"
+    },
+    {
+      "area": "strategy",
+      "detail": "Which features of the listed port work is not checked.",
+      "strategy": "linux"
+    },
+    {
+      "area": "strategy",
+      "detail": "The app modules do not exist yet (they are built in M4).",
+      "strategy": "on_top_of_android"
+    }
+  ]
+}

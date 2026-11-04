@@ -1,0 +1,259 @@
+{
+  "build_allowed": "emulator_only",
+  "explanation_status": {
+    "code": null,
+    "model": null,
+    "reason": null,
+    "status": "not_requested"
+  },
+  "fit": {
+    "checks": [
+      {
+        "estimated": false,
+        "fact": "kernel.config.*",
+        "name": "kernel",
+        "reason": "not needed yet",
+        "status": "not_needed"
+      }
+    ],
+    "estimated": true,
+    "model_choice": {
+      "model_id": null,
+      "reasons": [
+        "mystery-model is unknown: model size unknown; model size unknown; model mystery-model has no known ABI"
+      ],
+      "status": "unconfirmed"
+    },
+    "models": [
+      {
+        "checks": [
+          {
+            "estimated": true,
+            "fact": "resources.ram_total",
+            "have_bytes": null,
+            "name": "memory",
+            "needed_bytes": null,
+            "reason": "model size unknown",
+            "status": "unknown"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.data_free",
+            "have_bytes": null,
+            "name": "storage",
+            "needed_bytes": null,
+            "reason": "model size unknown",
+            "status": "unknown"
+          },
+          {
+            "estimated": true,
+            "fact": "resources.cpu_abis",
+            "have_abis": null,
+            "name": "cpu",
+            "needed_abi": null,
+            "reason": "model mystery-model has no known ABI",
+            "status": "unknown"
+          }
+        ],
+        "id": "mystery-model",
+        "total_bytes": null,
+        "verdict": "unknown"
+      }
+    ],
+    "reasons": [
+      "mystery-model is unknown: model size unknown; model size unknown; model mystery-model has no known ABI"
+    ],
+    "result": "unconfirmed",
+    "services": [
+      "files",
+      "assistant"
+    ]
+  },
+  "handoff": {
+    "build_allowed": "emulator_only",
+    "candidate_strategies": [
+      "community_build",
+      "generic_system_image",
+      "linux",
+      "on_top_of_android"
+    ],
+    "model": null,
+    "model_reason": "mystery-model is unknown: model size unknown; model size unknown; model mystery-model has no known ABI",
+    "provenance": {
+      "catalog": "synthetic",
+      "profile": "synthetic",
+      "research": "synthetic"
+    },
+    "reasons": [
+      "mystery-model is unknown: model size unknown; model size unknown; model mystery-model has no known ABI"
+    ],
+    "selection_result": "unconfirmed",
+    "services": [
+      "files",
+      "assistant"
+    ],
+    "unresolved": [
+      {
+        "area": "image_size",
+        "detail": "capacity.system_image_max is always unknown in M3 (M1 does not collect it); not checked yet."
+      },
+      {
+        "area": "strategy",
+        "detail": "The tree still builds.",
+        "strategy": "community_build"
+      },
+      {
+        "area": "strategy",
+        "detail": "The vendor files are available.",
+        "strategy": "community_build"
+      },
+      {
+        "area": "strategy",
+        "detail": "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them).",
+        "strategy": "generic_system_image"
+      },
+      {
+        "area": "strategy",
+        "detail": "Which features of the listed port work is not checked.",
+        "strategy": "linux"
+      },
+      {
+        "area": "strategy",
+        "detail": "The app modules do not exist yet (they are built in M4).",
+        "strategy": "on_top_of_android"
+      },
+      {
+        "area": "fit",
+        "detail": "memory: model size unknown",
+        "model": "mystery-model"
+      },
+      {
+        "area": "fit",
+        "detail": "storage: model size unknown",
+        "model": "mystery-model"
+      },
+      {
+        "area": "fit",
+        "detail": "cpu: model mystery-model has no known ABI",
+        "model": "mystery-model"
+      }
+    ]
+  },
+  "inputs": {
+    "catalog": {
+      "provenance": "synthetic",
+      "sha256": "4a8b43e6bc579019cfd13793a283ed321cc75851606bd7b588415faa2bb50e52"
+    },
+    "profile": {
+      "provenance": "synthetic",
+      "sha256": "f4c813bc5e7214fd0c1597d4231abaa291e08576e763fad1814fabc67f49f69a"
+    },
+    "research": {
+      "provenance": "synthetic",
+      "sha256": "f59f740b8173429b6b754b20f6f7c8d1b974cafeeabcea9cde292ad8905c700d"
+    }
+  },
+  "notes": null,
+  "provenance": "synthetic",
+  "rules": {
+    "fit_budgets": "a0d61fc0dba0252f30d16160a1b284e6e8453c2a0bb3f826cd139ef268b2a596",
+    "inference_rules": "5d4d6a39a781d4b3a40df441bcf1e9ce5ee8bdf0d296dc434400cada76d662cf",
+    "strategy_rules": "3d478810e0503c53ad60df39fd2c2d8212d22d3339a9f6c8120d93f98b26bcb3"
+  },
+  "schema_version": "plan-v1",
+  "selection_result": "unconfirmed",
+  "strategies": [
+    {
+      "blocker": null,
+      "id": "community_build",
+      "met": [
+        "lineage.support",
+        "repos.device_tree",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "The tree still builds.",
+        "The vendor files are available."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "A community tree may not build, and some hardware may not work."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "generic_system_image",
+      "met": [
+        "boot.treble_enabled",
+        "resources.cpu_abis",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "Launch and vendor version compatibility (Android's GSI rules also check these, and M3 has no fact for them)."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "Some GSI hardware features may not work."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "linux",
+      "met": [
+        "pmos.status",
+        "boot.bootloader_locked"
+      ],
+      "missing": [],
+      "open_checks": [
+        "Which features of the listed port work is not checked."
+      ],
+      "risks": [
+        "Unlocking or relocking the bootloader wipes the phone's data.",
+        "A listed port page shows a page exists, not that the port works."
+      ],
+      "signing": "Verified boot shows orange after unlocking; relocking needs your own signing key, if the phone supports it.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "on_top_of_android",
+      "met": [
+        "identity.sdk_level",
+        "resources.cpu_abis"
+      ],
+      "missing": [],
+      "open_checks": [
+        "The app modules do not exist yet (they are built in M4)."
+      ],
+      "risks": [
+        "The app modules do not exist yet; they are built in M4."
+      ],
+      "signing": "No bootloader change; stock verified boot is untouched.",
+      "status": "candidate"
+    },
+    {
+      "blocker": null,
+      "id": "stock_rebuild",
+      "met": [],
+      "missing": [],
+      "open_checks": [],
+      "risks": [
+        "M3 does not judge stock rebuilds."
+      ],
+      "signing": "Unknown in M3.",
+      "status": "not_covered"
+    }
+  ],
+  "subject": {
+    "codename": "acme_fx",
+    "manufacturer": "Acme",
+    "model": "Acme Flagship X"
+  },
+  "unlock_state": "already_unlocked"
+}

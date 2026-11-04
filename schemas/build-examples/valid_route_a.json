@@ -1,0 +1,52 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.launcher",
+      "path": "apk/stargate-launcher.apk",
+      "service": "launcher",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.files",
+      "path": "apk/stargate-files.apk",
+      "service": "files",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 1622147072,
+      "path": "system-stargate-files.img",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "bytes": 639251897,
+      "path": "system-stargate-files.img.gz",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "assistant_manifest_sha256": null,
+  "build_id": "m4a-files-01234567",
+  "image_bytes": 1622147072,
+  "labels": [],
+  "model_delivery": "none",
+  "model_files": null,
+  "model_payload_path": null,
+  "partition_limit_bytes": 1622147072,
+  "plan_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "route": "A",
+  "runtime_version": null,
+  "schema_version": "build-v1",
+  "selection": [
+    "files"
+  ],
+  "selection_result": "fits",
+  "unresolved": [
+    {
+      "area": "image_size",
+      "detail": "example"
+    }
+  ]
+}

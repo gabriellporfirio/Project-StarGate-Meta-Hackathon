@@ -1,0 +1,72 @@
+{
+  "apps": [
+    {
+      "package": "com.stargate.assistant",
+      "path": "assistant.apk",
+      "service": "assistant",
+      "sha256": "f082f6a7e778abf2de631434c681c4cdfeb7b6495777c87cef480b03d8f21cd8",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.files",
+      "path": "files.apk",
+      "service": "files",
+      "sha256": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
+      "version": "1.0"
+    },
+    {
+      "package": "com.stargate.launcher",
+      "path": "launcher.apk",
+      "service": "launcher",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "version": "1.0"
+    }
+  ],
+  "artifacts": [
+    {
+      "bytes": 8,
+      "path": "assistant.apk",
+      "sha256": "f082f6a7e778abf2de631434c681c4cdfeb7b6495777c87cef480b03d8f21cd8"
+    },
+    {
+      "bytes": 4,
+      "path": "files.apk",
+      "sha256": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+    },
+    {
+      "bytes": 4,
+      "path": "launcher.apk",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    }
+  ],
+  "assistant_manifest_sha256": "1f8f2553fee50c71985d4988e466a943094230cccdf1d64e7f2e584ebb457418",
+  "build_id": "m4a-example-files-assistant",
+  "labels": [
+    "emulator experiment: fit not confirmed"
+  ],
+  "model_delivery": "after_boot",
+  "model_files": [
+    {
+      "bytes": 12,
+      "name": "model.pte",
+      "sha256": "8715cdba9e91f6bede00cc5f2d6b12397b95225da5630c4972a8da03001cda3b",
+      "target": "/sdcard/Android/data/com.stargate.assistant/files/model/model.pte"
+    }
+  ],
+  "model_payload_path": null,
+  "plan_sha256": "4b35ae2f104f512446f10357edfb5cafafdb6432fa517bd00bce69a8d854caf1",
+  "route": "B",
+  "runtime_version": "executorch 1.5.1",
+  "schema_version": "build-v1",
+  "selection": [
+    "files",
+    "assistant"
+  ],
+  "selection_result": "unconfirmed",
+  "unresolved": [
+    {
+      "area": "image_size",
+      "detail": "example unresolved check"
+    }
+  ]
+}

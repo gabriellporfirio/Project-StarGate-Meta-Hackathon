@@ -1,0 +1,21 @@
+{
+  "schema_version": "profile-v1",
+  "simulated": true,
+  "fixture_name": "example",
+  "created_at": "2026-10-30T12:00:00Z",
+  "facts": {
+    "resources.ram_total": {
+      "status": "measured",
+      "value": "2 GB",
+      "unit": "bytes",
+      "evidence": [
+        {
+          "probe_id": "cat-proc-meminfo",
+          "command": "cat /proc/meminfo",
+          "excerpt": "MemTotal: 2048000 kB",
+          "observed_at": "2026-10-30T12:00:01Z"
+        }
+      ]
+    }
+  }
+}

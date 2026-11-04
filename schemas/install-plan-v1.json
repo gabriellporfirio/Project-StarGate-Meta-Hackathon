@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stargate.local/schemas/install-plan-v1.json",
+  "title": "install-plan-v1 (descriptive; stargate/install.py is authoritative)",
+  "type": "object",
+  "required": ["schema_version", "subject", "inputs", "fetch_records", "facts_used", "drafts", "accepted_steps", "result", "unresolved", "runs", "provenance", "model"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "install-plan-v1"},
+    "subject": {
+      "type": "object",
+      "required": ["codename", "manufacturer", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "codename": {"type": "string", "minLength": 1},
+        "manufacturer": {"oneOf": [{"type": "null"}, {"type": "string"}]},
+        "model": {"oneOf": [{"type": "null"}, {"type": "string"}]}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["profile", "plan", "starting_steps", "pages"],
+      "additionalProperties": false,
+      "properties": {
+        "profile": {"$ref": "#/$defs/input_entry"},
+        "plan": {"$ref": "#/$defs/input_entry"},
+        "starting_steps": {"$ref": "#/$defs/input_entry"},
+        "pages": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["url", "sha256", "provenance"],
+            "additionalProperties": false,
+            "properties": {
+              "url": {"type": "string", "minLength": 1},
+              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "provenance": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "fetch_records": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"$ref": "#/$defs/fetch_record"}
+    },
+    "facts_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "value", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "value": true,
+          "status": {"type": "string", "enum": ["measured", "inferred", "unknown", "conflicting"]}
+        }
+      }
+    },
+    "drafts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {"$ref": "#/$defs/draft_entry"}
+    },
+    "accepted_steps": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "array", "items": {"type": "object"}}
+      ]
+    },
+    "result": {"type": "string", "enum": ["accepted", "unconfirmed", "do_not_install", "no_valid_plan"]},
+    "unresolved": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["area", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "area": {"type": "string", "minLength": 1},
+          "detail": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "runs": {"const": "never"},
+    "provenance": {"type": "string", "enum": ["live", "replay", "synthetic"]},
+    "model": {
+      "type": "object",
+      "required": ["id", "provider"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "input_entry": {
+      "type": "object",
+      "required": ["sha256", "provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "provenance": {"type": "string", "minLength": 1}
+      }
+    },
+    "fetch_record": {
+      "type": "object",
+      "required": ["id", "tool", "url_requested", "url_final", "status", "fetched_at", "byte_size", "sha256", "outcome", "cached", "excerpt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "tool": {"type": "string", "minLength": 1},
+        "url_requested": {"type": "string", "minLength": 1},
+        "url_final": {"type": "string", "minLength": 1},
+        "status": {"oneOf": [{"type": "null"}, {"type": "integer"}]},
+        "fetched_at": {"type": "string", "minLength": 1},
+        "byte_size": {"type": "integer", "minimum": 0},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "outcome": {"type": "string", "minLength": 1},
+        "cached": {"type": "boolean"},
+        "excerpt": {"$ref": "#/$defs/excerpt_record"}
+      }
+    },
+    "excerpt_record": {
+      "type": "object",
+      "required": ["text", "sha256", "ranges", "extraction_version"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "ranges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {"type": "integer", "minimum": 0}
+          }
+        },
+        "extraction_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "draft_entry": {
+      "type": "object",
+      "required": ["index", "finish_reason", "content", "parsed", "rule_results", "model", "usage"],
+      "additionalProperties": false,
+      "properties": {
+        "index": {"type": "integer", "minimum": 1},
+        "finish_reason": true,
+        "content": {"type": "string"},
+        "parsed": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "rule_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule", "status", "reasons"],
+            "additionalProperties": false,
+            "properties": {
+              "rule": {"type": "string", "minLength": 1},
+              "status": {"type": "string", "enum": ["pass", "fail", "not_evaluated"]},
+              "reasons": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "required": ["id", "provider"],
+          "additionalProperties": false,
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "provider": {"type": "string", "minLength": 1}
+          }
+        },
+        "usage": {"type": "object"}
+      }
+    }
+  }
+}
