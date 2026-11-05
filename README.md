@@ -1,5 +1,5 @@
 # StarGate
-Turns old Android phones into private home servers. Meta hackathon project. Plan: Project-Stargate (private).
+Turns old Android phones into private home servers. Meta hackathon project.
 
 StarGate inspects an old Android phone, researches what community
 software supports it, and drafts a plan to turn it into a small
