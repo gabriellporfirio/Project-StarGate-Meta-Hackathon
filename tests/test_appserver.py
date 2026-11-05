@@ -532,6 +532,28 @@ class SafeRenderingTests(AppCase):
             self.assertNotIn("onerror", rest.lower())
             self.assertNotIn("javascript:", rest.lower())
 
+    def test_no_new_scripts_or_external_urls(self):
+        names = sorted(os.listdir(APP_DIR))
+        self.assertEqual([name for name in names
+                          if name.endswith(".js")],
+                         ["app.js", "signin.js"])
+        for name in ("index.html", "signin.html", "signin.js",
+                     "app.css", "app.js"):
+            text = self._read(name)
+            for scheme in ("http://", "https://"):
+                rest = text
+                while scheme in rest:
+                    rest = rest.split(scheme, 1)[1]
+                    self.assertTrue(
+                        rest.startswith("127.0.0.1") or
+                        rest.startswith("localhost"),
+                        "%s: external URL %s%s"
+                        % (name, scheme, rest[:40]))
+            self.assertNotIn("@import", text, name)
+        css = self._read("app.css")
+        self.assertNotIn("url(", css)
+        self.assertEqual(css.count("{"), css.count("}"))
+
     def test_model_text_served_raw_for_text_rendering(self):
         evil = "<script>alert(1)</script><img src=x onerror=alert(2)>"
 

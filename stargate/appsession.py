@@ -53,6 +53,21 @@ def hash_value(obj) -> str:
     return sha256_hex(canonical_bytes(strip_volatile(obj)))
 
 
+def m5_style_hash(obj) -> str:
+    """M5's input byte hashing, reproduced (P7, no M5 import).
+
+    stargate.install records input hashes as SHA-256 over the input
+    FILE bytes, and those files are json.dumps(obj, indent=2) plus one
+    trailing newline (verified byte-identical against the budget v3
+    profile and plan files). Volatile timestamps are included, exactly
+    as M5 hashed them, so fresh scans legitimately differ from old
+    records: that mismatch honestly shows "out of date".
+    """
+    raw = (json.dumps(obj, indent=2, ensure_ascii=True) + "\n").encode(
+        "utf-8")
+    return sha256_hex(raw)
+
+
 def current_input_hashes(record: dict) -> dict:
     """Hashes of the current inputs: profile, answers, selection, research.
 

@@ -40,6 +40,19 @@ body {
   background-size: auto, auto, 40px 40px, 40px 40px;
 }
 
+/* Slow star field: two low-contrast dot layers drifting as one. */
+.bg::before {
+  content: "";
+  position: fixed;
+  inset: -160px;
+  background-image:
+    radial-gradient(circle, rgba(230, 234, 242, .30) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(230, 234, 242, .14) 1px, transparent 1.6px);
+  background-size: 140px 140px, 230px 230px;
+  animation: drift 180s linear infinite;
+  pointer-events: none;
+}
+
 .top {
   display: flex;
   align-items: center;
@@ -97,9 +110,15 @@ body {
   padding: 8px 10px;
 }
 
+.rail button.done {
+  color: var(--teal);
+  border-color: #23404d;
+}
+
 .rail button[aria-current="step"] {
   color: var(--text);
   border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal), 0 0 18px rgba(94, 234, 212, .35);
 }
 
 .rail button:hover { color: var(--text); }
@@ -111,6 +130,24 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
+}
+
+/* Radar sweep while a step loads (toggled on #screen). */
+#screen.loading::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #2A3550;
+  background: conic-gradient(from 0deg, var(--teal), transparent 30%);
+  -webkit-mask: radial-gradient(circle, transparent 8px, #000 9px);
+  mask: radial-gradient(circle, transparent 8px, #000 9px);
+  animation: spin 1.1s linear infinite;
+  pointer-events: none;
 }
 
 .panel {
@@ -118,7 +155,22 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px 22px;
-  animation: rise .45s cubic-bezier(.2, .8, .2, 1) both;
+  animation: rise .25s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Refused plan: one red-amber callout, numbers large. */
+.panel.callout-refused {
+  border-color: rgba(255, 120, 90, .55);
+  box-shadow: 0 0 0 1px rgba(255, 120, 90, .25),
+    0 0 24px rgba(255, 120, 90, .12);
+  background:
+    linear-gradient(rgba(255, 110, 80, .07), rgba(255, 110, 80, .02)),
+    var(--panel);
+}
+
+.panel.callout-refused td.value {
+  font-size: 1.3em;
+  color: #FFD9C4;
 }
 
 .panel h2 {
@@ -293,6 +345,15 @@ ul.plain li { margin-bottom: 6px; }
 @keyframes slide {
   from { margin-left: 0; }
   to { margin-left: 60%; }
+}
+
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-140px, -140px, 0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

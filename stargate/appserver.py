@@ -63,6 +63,14 @@ NO_RESEARCH_MESSAGE = "No recorded research for this phone yet"
 M5_MESSAGE = "Install plan: added in Part 2"
 LIVE_MESSAGE = "Live runs: not in this part"
 PHONE_LINK_MESSAGE = "arrives when Link is joined in (platform Part 2)"
+# Saved M5 run (P5): shown only for the budget profile, only when the
+# copied file passes integrity and its recorded inputs match the app.
+M5_SAVED_REPLAY = "budget-replay-v3.json"
+M5_SAVED_PLAN = "budget-plan-v3.json"
+M5_SAVED_TITLE = "Saved run (4 Nov), replayed offline"
+M5_SAVED_LIMIT = "Install-routing proposal: not a validated install procedure"
+M5_SAVED_UNAVAILABLE = "Saved run unavailable"
+M5_SAVED_OUTDATED = "Saved run is out of date for this phone or selection"
 
 QUESTIONS = (
     {"id": "q1",
@@ -134,12 +142,19 @@ def default_helper() -> str:
                           "/workspaces/m6-tools/ahead-heavy.sh")
 
 
+def default_m5_saved_dir() -> str:
+    """Copied M5 saved-run files plus SOURCES.txt (read-only)."""
+    return os.environ.get("STARGATE_APP_M5_SAVED",
+                          "/workspaces/m6-tools/m5-saved")
+
+
 class App:
     """Server state: sessions, records, per-step runs, build settings."""
 
     def __init__(self, port: int, forwarded_host=None, out_root=None,
                  tools_dir=None, helper_path=None, scan_fn=None,
-                 plan_fn=None, build_cmd_factory=None):
+                 plan_fn=None, build_cmd_factory=None,
+                 m5_saved_dir=None):
         self.port = port
         self.forwarded_host = forwarded_host
         self.out_root = out_root if out_root is not None \
@@ -148,6 +163,8 @@ class App:
             else default_tools_dir()
         self.helper_path = helper_path if helper_path is not None \
             else default_helper()
+        self.m5_saved_dir = m5_saved_dir if m5_saved_dir is not None \
+            else default_m5_saved_dir()
         self.scan_fn = scan_fn if scan_fn is not None else real_scan
         self.plan_fn = plan_fn if plan_fn is not None else real_plan
         self.build_cmd_factory = build_cmd_factory
@@ -178,6 +195,173 @@ class App:
             origins.add("https://localhost:%d" % self.port)
         return origins
 
+    def _load_m5_file(self, name: str):
+        """Integrity-checked copied JSON file, or None.
+
+        Reads only our own copies plus SOURCES.txt (no M5 code, no
+        network). Returns (sha256 hex, parsed dict). None when anything
+        is missing, unparsable, or the hash differs. Never raises.
+        """
+        try:
+            with open(os.path.join(self.m5_saved_dir, "SOURCES.txt"),
+                      encoding="utf-8") as handle:
+                sources = handle.read()
+            expected = None
+            for line in sources.splitlines():
+                line = line.strip()
+                if not line.startswith("sha256:"):
+                    continue
+                parts = line.split()
+                if len(parts) >= 4 and parts[2] == "file:" and \
+                        parts[3] == name:
+                    expected = parts[1]
+            if not expected:
+                return None
+            with open(os.path.join(self.m5_saved_dir, name),
+                      "rb") as handle:
+                raw = handle.read()
+            if session_module.sha256_hex(raw) != expected.lower():
+                return None
+            parsed = json.loads(raw.decode("utf-8"))
+            if not isinstance(parsed, dict):
+                return None
+            return expected.lower(), parsed
+        except (OSError, ValueError):
+            return None
+
+    @staticmethod
+    def _m5_draft_verdict(draft: dict) -> str:
+        """ACCEPTED when every recorded rule passed, else REJECTED."""
+        results = draft.get("rule_results") or []
+        if not results:
+            return "REJECTED"
+        for entry in results:
+            if not isinstance(entry, dict) or \
+                    entry.get("status") != "pass":
+                return "REJECTED"
+        return "ACCEPTED"
+
+    def _m5_view(self, record: dict) -> dict:
+        """Install plan panel state (P5/P5b/P7).
+
+        Only the budget profile can show the saved run, and only when
+        (1) the copies pass integrity and (2) the current profile and
+        plan hash (M5's own byte hashing) equal the recorded ones and
+        the current selection equals the recorded plan's services.
+        Anything else shows unavailable/out-of-date WITHOUT the run.
+        """
+        profile = record.get("profile")
+        if profile is None or profile.get("name") != "budget":
+            return {"status": "part2", "data": None,
+                    "message": M5_MESSAGE}
+        loaded = self._load_m5_file(M5_SAVED_REPLAY)
+        plan_loaded = self._load_m5_file(M5_SAVED_PLAN)
+        if loaded is None or plan_loaded is None:
+            return {"status": "unavailable", "data": None,
+                    "message": M5_SAVED_UNAVAILABLE, "sha256": None,
+                    "inputs": None}
+        file_hex, replay = loaded
+        _plan_hex, plan_file = plan_loaded
+        recorded = replay.get("inputs") or {}
+        if not isinstance(recorded, dict):
+            recorded = {}
+
+        def _recorded(key: str):
+            entry = recorded.get(key)
+            if not isinstance(entry, dict):
+                return None
+            value = entry.get("sha256")
+            return value if isinstance(value, str) and value else None
+
+        recorded_services = (plan_file.get("handoff") or {}).get(
+            "services")
+        if not isinstance(recorded_services, list) or \
+                not recorded_services or \
+                any(not isinstance(item, str) or not item
+                    for item in recorded_services):
+            recorded_services = None
+        else:
+            recorded_services = sorted(recorded_services)
+        selection = record.get("selection") or {}
+        current_services = selection.get("services")
+        if not isinstance(current_services, list) or \
+                not current_services:
+            current_services = None
+        else:
+            current_services = sorted(current_services)
+        plan_data = (record["outputs"].get("plan") or {}).get("data")
+        pairs = {
+            "profile": {
+                "recorded": _recorded("profile"),
+                "current": session_module.m5_style_hash(
+                    profile.get("data"))},
+            "plan": {
+                "recorded": _recorded("plan"),
+                "current": session_module.m5_style_hash(plan_data)
+                if isinstance(plan_data, dict) else None},
+            "selection": {"recorded": recorded_services,
+                          "current": current_services},
+        }
+
+        def _pair_ok(pair) -> bool:
+            return pair["recorded"] is not None and \
+                pair["current"] is not None and \
+                pair["recorded"] == pair["current"]
+
+        if not all(_pair_ok(pairs[key])
+                   for key in ("profile", "plan", "selection")):
+            return {"status": "outdated", "data": None,
+                    "message": M5_SAVED_OUTDATED, "sha256": file_hex,
+                    "inputs": pairs}
+        pages = []
+        for entry in replay.get("fetch_records") or []:
+            if not isinstance(entry, dict):
+                continue
+            excerpt = entry.get("excerpt") or {}
+            pages.append({"id": entry.get("id"),
+                          "url": entry.get("url_final"),
+                          "byte_size": entry.get("byte_size"),
+                          "excerpt_ranges": excerpt.get("ranges"),
+                          "excerpt_sha256": excerpt.get("sha256")})
+        drafts = []
+        for draft in replay.get("drafts") or []:
+            if not isinstance(draft, dict):
+                continue
+            drafts.append({
+                "index": draft.get("index"),
+                "verdict": self._m5_draft_verdict(draft),
+                "finish_reason": draft.get("finish_reason"),
+                "usage": draft.get("usage"),
+                "rules": [{"rule": item.get("rule"),
+                           "status": item.get("status"),
+                           "reasons": item.get("reasons") or []}
+                          for item in draft.get("rule_results") or []
+                          if isinstance(item, dict)]})
+        refusal = None
+        for draft in replay.get("drafts") or []:
+            parsed = (draft.get("parsed") or {}) \
+                if isinstance(draft, dict) else {}
+            blocked = parsed.get("do_not_install")
+            citation = (blocked.get("citation") or {}) \
+                if isinstance(blocked, dict) else {}
+            if citation.get("quote"):
+                url = None
+                for page in pages:
+                    if page["id"] == citation.get("fetch_id"):
+                        url = page["url"]
+                refusal = {"reason": blocked.get("reason"),
+                           "quote": citation.get("quote"),
+                           "rule": citation.get("rule"),
+                           "fetch_id": citation.get("fetch_id"),
+                           "url": url}
+                break
+        return {"status": "saved", "message": M5_SAVED_TITLE,
+                "sha256": file_hex, "inputs": pairs,
+                "data": {"result": replay.get("result"),
+                         "model": replay.get("model"),
+                         "pages": pages, "drafts": drafts,
+                         "refusal": refusal}}
+
     def state_for(self, session_id: str):
         """Public (csrf, state) for a session. Read-only: changes nothing."""
         with self.lock:
@@ -195,8 +379,7 @@ class App:
                         record, "plan"),
                     "research": {"status": "none", "data": None,
                                  "message": NO_RESEARCH_MESSAGE},
-                    "m5": {"status": "part2", "data": None,
-                           "message": M5_MESSAGE},
+                    "m5": self._m5_view(record),
                     "build": session_module.describe_output(
                         record, "build"),
                 },

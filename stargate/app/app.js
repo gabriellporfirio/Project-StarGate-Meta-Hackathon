@@ -94,6 +94,7 @@ function staleBox(view, rerunStep) {
 
 function gotoStep(step) {
   if (POLL) { clearInterval(POLL); POLL = null; }
+  document.getElementById("screen").classList.remove("loading");
   STEP = step;
   render();
   document.getElementById("screen").focus({ preventScroll: true });
@@ -230,7 +231,12 @@ async function onQuestions() {
   render();
 }
 
-function factText(value) {
+function factText(fact) {
+  if (fact && fact.unit === "bytes" &&
+      typeof fact.value === "number") {
+    return fmtBytes(fact.value);
+  }
+  const value = fact ? fact.value : fact;
   if (typeof value === "string") return value;
   return JSON.stringify(value);
 }
@@ -267,7 +273,7 @@ function screenPhone(root) {
     const fact = facts[key];
     const row = document.createElement("tr");
     row.appendChild(el("td", null, key));
-    row.appendChild(el("td", "value", factText(fact.value)));
+    row.appendChild(el("td", "value", factText(fact)));
     row.appendChild(el("td", null, fact.status || "unknown"));
     table.appendChild(row);
   });
@@ -340,6 +346,7 @@ async function onSelection() {
 function renderPlan(root, plan) {
   const panel = el("div", "panel");
   const result = plan.selection_result || "unknown";
+  if (result === "refused") panel.classList.add("callout-refused");
   const tags = el("p", null);
   tags.appendChild(tag("result: " + result,
     result === "refused" ? "amber" : ""));
@@ -418,8 +425,81 @@ function screenResearch(root) {
   root.appendChild(panel);
   const m5 = el("div", "panel");
   m5.appendChild(el("h2", null, "Install plan"));
-  m5.appendChild(el("p", "muted", st.outputs.m5.message + "."));
+  const mv = st.outputs.m5;
+  if (mv.status === "saved" && mv.data) {
+    renderM5Saved(m5, mv);
+  } else if (mv.status === "outdated") {
+    m5.appendChild(el("p", "muted", mv.message + "."));
+    m5.appendChild(m5InputDetails(mv));
+  } else {
+    m5.appendChild(el("p", "muted", mv.message + "."));
+  }
   root.appendChild(m5);
+}
+
+function m5DetailValue(value) {
+  if (value === null || value === undefined) return "none";
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
+function m5InputDetails(mv) {
+  const rows = [["file sha256", mv.sha256 || "none"]];
+  const inputs = mv.inputs || {};
+  ["profile", "plan", "selection"].forEach(function (key) {
+    const pair = inputs[key] || {};
+    rows.push(["recorded " + key, m5DetailValue(pair.recorded)]);
+    rows.push(["current " + key, m5DetailValue(pair.current)]);
+  });
+  return detailsBox("Install plan details", rows);
+}
+
+function renderM5Saved(m5, mv) {
+  const data = mv.data;
+  m5.appendChild(el("p", null, mv.message + "."));
+  const tags = el("p", null);
+  tags.appendChild(tag("SIMULATED"));
+  m5.appendChild(tags);
+  const result = data.result === "do_not_install" ? "Do not install" :
+    String(data.result);
+  m5.appendChild(el("p", null, "Result: " + result + "."));
+  (data.pages || []).forEach(function (page) {
+    m5.appendChild(el("p", null,
+      (page.id || "page") + ": " + page.url + " (page " +
+      page.byte_size + " bytes; excerpt ranges " +
+      JSON.stringify(page.excerpt_ranges) + ")."));
+  });
+  (data.drafts || []).forEach(function (draft) {
+    m5.appendChild(el("p", null,
+      "Draft " + draft.index + ": " + draft.verdict + "."));
+    (draft.rules || []).forEach(function (rule) {
+      m5.appendChild(el("p", "muted",
+        rule.rule + ": " + rule.status + "."));
+      (rule.reasons || []).forEach(function (reason) {
+        m5.appendChild(el("p", "faint", reason));
+      });
+    });
+    const usage = draft.usage || {};
+    m5.appendChild(el("p", "faint",
+      "Tokens: prompt " + usage.prompt_tokens + ", completion " +
+      usage.completion_tokens + ", reasoning " +
+      usage.reasoning_tokens + "."));
+  });
+  if (data.refusal) {
+    m5.appendChild(el("p", null,
+      "Refusal: " + data.refusal.reason));
+    m5.appendChild(el("p", "muted", "Quote:"));
+    m5.appendChild(el("p", "mono", data.refusal.quote));
+    m5.appendChild(el("p", "muted",
+      "Source: " + data.refusal.url + " (" + data.refusal.rule +
+      ", " + data.refusal.fetch_id + ")."));
+  }
+  const model = data.model || {};
+  m5.appendChild(el("p", null,
+    "Model: " + model.id + " (" + model.provider + ")."));
+  m5.appendChild(el("p", "faint",
+    "Install-routing proposal: not a validated install procedure."));
+  m5.appendChild(m5InputDetails(mv));
 }
 
 function screenBuild(root) {
@@ -493,11 +573,13 @@ async function onBuild() {
 
 function startBuildPoll() {
   if (POLL) clearInterval(POLL);
+  document.getElementById("screen").classList.add("loading");
   POLL = setInterval(async function () {
     const found = latestBuildJob();
     if (!found || found.job.status !== "running") {
       clearInterval(POLL);
       POLL = null;
+      document.getElementById("screen").classList.remove("loading");
       const res = await api("GET", "/api/state", null);
       if (res.status === 200 && res.data) {
         CSRF = res.data.csrf;
@@ -519,6 +601,7 @@ function startBuildPoll() {
         }
         clearInterval(POLL);
         POLL = null;
+        document.getElementById("screen").classList.remove("loading");
       }
     }
   }, 2000);
@@ -611,7 +694,9 @@ async function screenBoot(root) {
   if (BOOT_CACHE.key !== key) {
     panel.appendChild(el("p", "muted", "Loading the steps."));
     root.appendChild(panel);
+    document.getElementById("screen").classList.add("loading");
     const res = await api("GET", "/api/boot", null);
+    document.getElementById("screen").classList.remove("loading");
     if (res.status !== 200 || !res.data) {
       setStatus("Boot steps failed.");
       showError((res.data && res.data.error) || "request failed");
@@ -684,12 +769,16 @@ function showError(text) {
 
 function render() {
   const buttons = document.querySelectorAll("#rail-list button");
+  const at = STEPS.indexOf(STEP);
   buttons.forEach(function (b) {
     if (b.getAttribute("data-step") === STEP) {
       b.setAttribute("aria-current", "step");
     } else {
       b.removeAttribute("aria-current");
     }
+    b.classList.toggle("done",
+      STEPS.indexOf(b.getAttribute("data-step")) >= 0 &&
+      STEPS.indexOf(b.getAttribute("data-step")) < at);
   });
   const root = elClear("screen");
   if (!STATE) {
