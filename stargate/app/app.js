@@ -39,6 +39,7 @@ let BOOT_CACHE = { key: "", text: "" };
 let PICKED = null;      /* services ticked on screen, before saving */
 let DRAFT = {};         /* answers picked on screen, before saving */
 let SHOW_RAW = false;
+let DEVICES = null;     /* { devices: [], error: "" } after a look */
 
 /* -- small helpers ------------------------------------------------ */
 
@@ -283,14 +284,47 @@ function screenConnect(root, looking) {
     "it, and we'll ask you clearly before that happens. Back up anything " +
     "you want to keep now."));
 
-  const pick = el("div", "panel up d5");
+  const real = el("div", "panel up d5");
+  const realHead = el("div", "between");
+  realHead.style.alignItems = "center";
+  add(realHead, el("h3", null, "Phones on the cable"),
+    button("ghost", DEVICES ? "Look again" : "Look for phones", onLook));
+  add(real, realHead);
+  if (!DEVICES) {
+    add(real, el("p", "muted",
+      "We only read facts from the phone. Nothing on it is changed."));
+  } else if (DEVICES.error) {
+    add(real, note("warn", "\u26a0", null, "Could not look: " +
+      DEVICES.error + "."));
+  } else if (DEVICES.devices.length === 0) {
+    add(real, el("p", "muted",
+      "No phone found. Check the cable and the three steps above."));
+  } else {
+    DEVICES.devices.forEach(function (device) {
+      const row = el("div", "between");
+      row.style.alignItems = "center";
+      const name = el("div", "stack");
+      add(name, el("span", "label", device.model || "Unnamed phone"),
+        el("span", "faint", device.ready ? "Ready, id ends " + device.hint :
+          device.state === "unauthorized" ?
+          "Waiting: unlock the phone and tap Allow" :
+          "Not ready (" + device.state + ")"));
+      const go = button("ghost", "Check this phone", function () {
+        onConnectDevice(device.id);
+      });
+      go.disabled = !device.ready;
+      add(real, add(row, name, go));
+    });
+  }
+  add(col, real);
+
+  const pick = el("div", "panel up d6");
   const head = el("div", "between");
-  add(head, el("h3", null, "Try it with an example phone"),
+  add(head, el("h3", null, "Or try an example phone"),
     el("span", "chip sim", "SIMULATED"));
   add(pick, head);
   add(pick, el("p", "muted",
-    "Reading a real phone over the cable is the next piece being built. " +
-    "These example phones use the same checks."));
+    "No phone to hand? These example phones go through the same checks."));
   const grid = el("div", "grid choices");
   Object.keys(PHONE_LABELS).filter(function (name) {
     return !st.fixtures || st.fixtures.indexOf(name) >= 0;
@@ -322,6 +356,32 @@ function screenConnect(root, looking) {
     add(art, el("span", "muted", "Waiting for a phone…"));
   }
   add(root, add(split, col, art));
+}
+
+async function onLook() {
+  setStatus("Looking for phones.");
+  const res = await api("GET", "/api/devices", null);
+  if (res.status !== 200 || !res.data) { fail(res, "Could not look."); return; }
+  DEVICES = res.data;
+  setStatus(DEVICES.error ? "Could not look for phones." :
+    DEVICES.devices.length + " phone(s) found.");
+  render();
+}
+
+async function onConnectDevice(id) {
+  setStatus("Reading the phone. Nothing on it is changed.");
+  const root = elClear("screen");
+  screenConnect(root, true);
+  const res = await api("POST", "/api/connect", { device: id });
+  if (res.status !== 200 || !res.data) {
+    fail(res, "Check failed.");
+    render();
+    return;
+  }
+  STATE = res.data.state;
+  PICKED = null;
+  setStatus("Phone checked. Nothing on it was changed.");
+  render();
 }
 
 async function onConnect(name) {
@@ -500,8 +560,10 @@ function screenPhone(root) {
   if (wantsDetails() || SHOW_RAW) {
     const panel = el("div", "panel");
     const head = el("div", "between");
-    add(head, el("h3", null, "Every fact we read"),
-      el("span", "chip sim", "SIMULATED · " + st.profile.name));
+    add(head, el("h3", null, "Every fact we read"));
+    if (st.profile.data.simulated) {
+      add(head, el("span", "chip sim", "SIMULATED · " + st.profile.name));
+    }
     add(panel, head);
     const wrap = el("div", "table-scroll");
     const table = el("table", "facts");

@@ -258,11 +258,89 @@ class SimulatedTransport(Transport):
         )
 
 
+ADB_LIST_TIMEOUT_SECONDS = 10.0
+_SERIAL_RE = re.compile(r"[A-Za-z0-9._:\-]{1,64}\Z")
+
+
 class RealAdbTransport(Transport):
-    """Stub real transport: refuses without starting any process."""
+    """Read-only transport to one real phone through `adb shell`.
+
+    Without a serial it refuses, as it always has. With a serial it
+    runs exactly one allowlisted command per call: run_probe() has
+    already refused anything that is not on the allowlist, and the
+    command is passed as a single argument (no local shell).
+    """
+
+    def __init__(self, serial: str | None = None, adb_path: str = "adb",
+                 runner=None) -> None:
+        self.serial = serial
+        self.adb_path = adb_path
+        self.runner = runner
 
     def run(self, command: str, timeout_seconds: float) -> TransportResult:
-        raise RealDevicesNotEnabled("real devices are not enabled in M1")
+        if not self.serial:
+            raise RealDevicesNotEnabled(
+                "no phone chosen: real scans need an explicit device")
+        if not _SERIAL_RE.match(self.serial):
+            raise RealDevicesNotEnabled("device id is not valid")
+        if command not in ALLOWLIST_SET:
+            raise RefusedCommand("%s: not on the allowlist" % command)
+        import subprocess
+        runner = self.runner or subprocess.run
+        try:
+            done = runner(
+                [self.adb_path, "-s", self.serial, "shell", command],
+                capture_output=True, timeout=timeout_seconds,
+                check=False)
+        except subprocess.TimeoutExpired:
+            return TransportResult(stdout=b"", stderr="", exit_code=124,
+                                   timed_out=True)
+        except OSError as exc:
+            return TransportResult(stdout=b"", stderr="adb failed: %s"
+                                   % exc, exit_code=127)
+        stderr = done.stderr.decode("utf-8", "replace") \
+            if isinstance(done.stderr, bytes) else str(done.stderr or "")
+        return TransportResult(stdout=done.stdout or b"", stderr=stderr,
+                               exit_code=done.returncode)
+
+
+def list_adb_devices(adb_path: str = "adb", runner=None) -> tuple:
+    """Phones adb can see. Returns (devices, error_text).
+
+    Each device is {"serial", "state", "model"}. Reads only; starts
+    nothing on any phone.
+    """
+    import subprocess
+    runner = runner or subprocess.run
+    try:
+        done = runner([adb_path, "devices", "-l"], capture_output=True,
+                      timeout=ADB_LIST_TIMEOUT_SECONDS, check=False)
+    except FileNotFoundError:
+        return [], "adb is not installed on this computer"
+    except subprocess.TimeoutExpired:
+        return [], "adb did not answer in time"
+    except OSError as exc:
+        return [], "adb failed: %s" % exc
+    if done.returncode != 0:
+        return [], "adb failed (exit %d)" % done.returncode
+    text = done.stdout.decode("utf-8", "replace") \
+        if isinstance(done.stdout, bytes) else str(done.stdout or "")
+    devices = []
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 2 or line.startswith("List of devices") \
+                or line.startswith("*"):
+            continue
+        serial, state = parts[0], parts[1]
+        if not _SERIAL_RE.match(serial):
+            continue
+        model = ""
+        for part in parts[2:]:
+            if part.startswith("model:"):
+                model = part[len("model:"):].replace("_", " ")
+        devices.append({"serial": serial, "state": state,
+                        "model": model})
+    return devices, ""
 
 
 def run_probe(

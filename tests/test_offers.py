@@ -20,7 +20,7 @@ class Catalogue(unittest.TestCase):
     def test_ids_are_unique_and_core_services_exist(self):
         self.assertEqual(len(set(services.SERVICE_IDS)),
                          len(services.SERVICE_IDS))
-        for wanted in ("files", "assistant", "vpn"):
+        for wanted in ("files", "assistant", "vpn", "vault"):
             self.assertIn(wanted, services.SERVICE_IDS)
 
     def test_only_built_services_are_selectable(self):
@@ -75,13 +75,17 @@ class Universal(unittest.TestCase):
         self.assertTrue(entry["model_id"])
 
     def test_image_only_service_follows_the_route(self):
-        self.assertEqual(
-            _by_id(_offers("flagship"))["adblock"]["status"], "ready")
-        self.assertEqual(
-            _by_id(_offers("budget"))["adblock"]["status"],
-            "not_possible")
-        self.assertEqual(
-            _by_id(_offers("locked"))["adblock"]["status"], "limited")
+        # No catalogue service needs the full image today; the rule
+        # itself stays, so prove it with a stand-in entry.
+        from unittest import mock
+        entry = dict(services.get("vault"), needs_route="image")
+        facts = scan.build_profile("flagship")["facts"]
+        with mock.patch.object(services, "get", return_value=entry):
+            for route, want in (("image", "ready"),
+                                ("takeover", "not_possible"),
+                                ("image_or_takeover", "limited")):
+                offer = offers.service_offer(facts, "vault", [], route)
+                self.assertEqual(offer["status"], want)
 
     def test_only_a_hopeless_phone_is_refused(self):
         result = _offers("relic")

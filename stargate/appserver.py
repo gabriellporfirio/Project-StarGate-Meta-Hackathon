@@ -104,6 +104,59 @@ def real_scan(profile_name: str):
     return 0, profile, ""
 
 
+LIVE_PROFILE_NAME = "device"
+
+
+def real_devices():
+    """Phones adb can see. Returns (devices, error_text)."""
+    from . import probe as probe_module
+    return probe_module.list_adb_devices()
+
+
+def real_device_scan(serial: str):
+    """Read-only scan of one real phone. (exit, profile, error)."""
+    from .scan import build_real_profile
+    try:
+        profile = build_real_profile(serial)
+    except RuntimeError as exc:
+        return 6, None, str(exc)
+    errors = validate_profile(profile)
+    if errors:
+        return 6, None, "built profile is invalid: %s" % errors[0]
+    if profile["facts"]["identity.device_codename"]["status"] \
+            == "unknown":
+        return 6, None, ("the phone did not answer. Unlock its screen, "
+                         "tap Allow, and try again")
+    return 0, profile, ""
+
+
+def real_plan_for_profile(profile: dict, services: list):
+    """Run M3 plan for a scanned (real) profile, no live calls."""
+    import tempfile
+    with tempfile.NamedTemporaryFile(
+            "w", suffix=".json", delete=False,
+            encoding="utf-8") as handle:
+        json.dump(profile, handle, sort_keys=True, indent=2)
+        path = handle.name
+    try:
+        exit_code, stdout_text, stderr_text = run_plan(
+            profile_path=path, services_text=",".join(services),
+            json_only=True)
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    if exit_code not in (0, EXIT_REFUSED):
+        return exit_code, None, (stderr_text or stdout_text).strip() \
+            or ("plan failed (exit %d)" % exit_code)
+    try:
+        plan = json.loads(stdout_text)
+    except ValueError:
+        return 6, None, "plan output is not JSON"
+    return exit_code, plan, ""
+
+
 def real_plan(profile_name: str, services: list):
     """Run M3 plan in-process, no research, no live calls.
 
@@ -187,7 +240,8 @@ class App:
     def __init__(self, port: int, forwarded_host=None, out_root=None,
                  tools_dir=None, helper_path=None, scan_fn=None,
                  plan_fn=None, build_cmd_factory=None,
-                 m5_saved_dir=None):
+                 m5_saved_dir=None, devices_fn=None,
+                 device_scan_fn=None):
         self.port = port
         self.forwarded_host = forwarded_host
         self.out_root = out_root if out_root is not None \
@@ -198,6 +252,10 @@ class App:
             else default_helper()
         self.m5_saved_dir = m5_saved_dir if m5_saved_dir is not None \
             else default_m5_saved_dir()
+        self.devices_fn = devices_fn if devices_fn is not None \
+            else real_devices
+        self.device_scan_fn = device_scan_fn \
+            if device_scan_fn is not None else real_device_scan
         self.scan_fn = scan_fn if scan_fn is not None else real_scan
         self.plan_fn = plan_fn if plan_fn is not None else real_plan
         self.build_cmd_factory = build_cmd_factory
@@ -590,6 +648,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/boot":
             self._serve_boot(session_id)
             return
+        if parsed.path == "/api/devices":
+            self._serve_devices(session_id)
+            return
         if parsed.path.startswith("/api/jobs/"):
             self._serve_job(session_id, parsed.path[len("/api/jobs/"):])
             return
@@ -628,6 +689,26 @@ class Handler(BaseHTTPRequestHandler):
                              % exc})
             return
         self._json(200, {"target": BOOT_TARGET, "steps": steps})
+
+    def _serve_devices(self, session_id: str):
+        """Phones on the cable. Serials stay on the server: the page
+        gets a short id and the last three characters only."""
+        devices, error = self.app.devices_fn()
+        listed = []
+        mapping = {}
+        for index, device in enumerate(devices):
+            device_id = "d%d" % (index + 1)
+            mapping[device_id] = device["serial"]
+            listed.append({
+                "id": device_id,
+                "model": device.get("model") or "",
+                "state": device["state"],
+                "ready": device["state"] == "device",
+                "hint": device["serial"][-3:],
+            })
+        with self.app.lock:
+            self.app.sessions[session_id]["devices"] = mapping
+        self._json(200, {"devices": listed, "error": error})
 
     def _serve_job(self, session_id: str, job_id: str):
         with self.app.lock:
@@ -786,6 +867,9 @@ class Handler(BaseHTTPRequestHandler):
         payload = self._json_body()
         if payload is None:
             return
+        if payload.get("device") is not None:
+            self._connect_device(session_id, payload.get("device"))
+            return
         name = payload.get("profile")
         if name not in KNOWN_FIXTURES:
             self._json(422, {"error": "unknown profile %r (known: %s)"
@@ -807,6 +891,36 @@ class Handler(BaseHTTPRequestHandler):
         with self.app.lock:
             record = self.app.sessions[session_id]["record"]
             session_module.set_profile(record, name, profile)
+            job = session_module.new_job(record, "connect")
+            session_module.finish_job(record, job["id"], "done")
+            job_id = job["id"]
+        self._state_response(session_id, job_id)
+
+    def _connect_device(self, session_id: str, device_id):
+        """Scan a real phone the user picked. Read-only."""
+        with self.app.lock:
+            mapping = self.app.sessions[session_id].get("devices") or {}
+            serial = mapping.get(device_id) \
+                if isinstance(device_id, str) else None
+            if serial is None:
+                self._json(422, {"error": "unknown phone: look for "
+                                          "phones again"})
+                return
+            if (session_id, "connect") in self.app.running:
+                self._json(429, {"error": "a scan is already running"})
+                return
+            self.app.running[(session_id, "connect")] = True
+        try:
+            exit_code, profile, error = self.app.device_scan_fn(serial)
+        finally:
+            with self.app.lock:
+                self.app.running.pop((session_id, "connect"), None)
+        if exit_code != 0 or profile is None:
+            self._json(500, {"error": error or "scan failed"})
+            return
+        with self.app.lock:
+            record = self.app.sessions[session_id]["record"]
+            session_module.set_profile(record, LIVE_PROFILE_NAME, profile)
             job = session_module.new_job(record, "connect")
             session_module.finish_job(record, job["id"], "done")
             job_id = job["id"]
@@ -865,9 +979,14 @@ class Handler(BaseHTTPRequestHandler):
             job = session_module.new_job(record, "selection")
             self.app.running[(session_id, "selection")] = job["id"]
             profile_name = record["profile"]["name"]
+            profile_data = record["profile"]["data"]
         try:
-            exit_code, plan, error = self.app.plan_fn(
-                profile_name, sorted(set(services)))
+            if profile_name == LIVE_PROFILE_NAME:
+                exit_code, plan, error = real_plan_for_profile(
+                    profile_data, sorted(set(services)))
+            else:
+                exit_code, plan, error = self.app.plan_fn(
+                    profile_name, sorted(set(services)))
         finally:
             with self.app.lock:
                 self.app.running.pop((session_id, "selection"), None)

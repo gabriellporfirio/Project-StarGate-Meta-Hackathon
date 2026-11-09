@@ -395,11 +395,27 @@ def build_profile(
     """Build a validated profile for one simulated fixture (offline)."""
     if fixture_name not in KNOWN_FIXTURES:
         raise ValueError("unknown simulated device: %r" % (fixture_name,))
-    stamp = created_at or utc_now_z()
-    owned = transport is None
-    if owned:
+    if transport is None:
         transport = SimulatedTransport(fixtures_dir() / fixture_name)
-    assert transport is not None
+    return _profile_from_transport(transport, created_at, True,
+                                   fixture_name)
+
+
+def build_real_profile(serial: str, created_at: str | None = None, *,
+                       transport=None) -> dict:
+    """Build a validated profile for one real phone, read-only.
+
+    Runs only the allowlisted probes through adb. The serial is used to
+    address the phone and is never stored in the profile.
+    """
+    if transport is None:
+        transport = probe_module.RealAdbTransport(serial)
+    return _profile_from_transport(transport, created_at, False, None)
+
+
+def _profile_from_transport(transport, created_at, simulated: bool,
+                            fixture_name) -> dict:
+    stamp = created_at or utc_now_z()
     started = time.monotonic()
     results: dict[str, TransportResult | Exception] = {}
     for command in probe_module.ALLOWLIST:
@@ -519,7 +535,7 @@ def build_profile(
         facts[fact_id] = _unknown(None, "not_probed_in_m1")
     profile = {
         "schema_version": "profile-v1",
-        "simulated": True,
+        "simulated": simulated,
         "fixture_name": fixture_name,
         "created_at": stamp,
         "facts": facts,

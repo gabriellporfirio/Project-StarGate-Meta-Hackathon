@@ -29,8 +29,8 @@ big": it makes the check `unknown`.
 ## Every service (9 Nov 2026)
 
 The per-service numbers now live in `stargate/services.py`, one entry
-per service (Files, AI assistant, Private VPN, Ad blocker, Media
-library). All are planning estimates. Memory needed = OS baseline +
+per service (Files and media, AI assistant, Private VPN, Password
+vault). All are planning estimates. Memory needed = OS baseline +
 each selected service's overhead (+ model bytes x runtime factor).
 
 ## When no model fits: cloud only

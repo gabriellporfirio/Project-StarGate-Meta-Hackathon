@@ -4,6 +4,11 @@ One entry per service. The numbers are planning estimates (see
 docs/fit-budgets.md) until a build measures them. `built` says whether
 the phone-side app exists yet: only built services can be selected for
 a build; the others are shown as "coming next" and never promised.
+
+The phone itself stays bare: its screen shows only settings and
+controls for each service. Everything you actually use (browsing
+files, playing media, chatting) happens on the phone's page, opened
+from a computer.
 """
 from __future__ import annotations
 
@@ -13,9 +18,10 @@ MIB = 1024 * 1024
 CATALOGUE = (
     {
         "id": "files",
-        "title": "Files",
-        "summary": "Keep photos and documents on the phone and reach "
-                   "them from your computer.",
+        "title": "Files and media",
+        "summary": "Keep photos, documents, music and videos on the "
+                   "phone. Browse and play them from its page on your "
+                   "computer, never on the phone's own screen.",
         "kind": "core",
         "built": True,
         "ram_overhead": 64 * MIB,
@@ -49,28 +55,14 @@ CATALOGUE = (
         "needs_route": None,
     },
     {
-        "id": "adblock",
-        "title": "Ad blocker for your home",
-        "summary": "Filters ads and trackers for every device on your "
-                   "Wi-Fi.",
-        "kind": "extra",
+        "id": "vault",
+        "title": "Password vault",
+        "summary": "Keep your passwords on a phone you own, locked "
+                   "with one master password.",
+        "kind": "core",
         "built": False,
         "ram_overhead": 48 * MIB,
         "storage": 60 * MIB,
-        "needs_model": False,
-        # Answering DNS on port 53 needs system rights, which only the
-        # full image has.
-        "needs_route": "image",
-    },
-    {
-        "id": "media",
-        "title": "Media library",
-        "summary": "Play the music and videos stored on the phone on "
-                   "your TV or computer.",
-        "kind": "extra",
-        "built": False,
-        "ram_overhead": 96 * MIB,
-        "storage": 80 * MIB,
         "needs_model": False,
         "needs_route": None,
     },

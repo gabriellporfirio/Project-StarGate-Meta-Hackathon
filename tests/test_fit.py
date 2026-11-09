@@ -139,7 +139,7 @@ class RealFixtures(unittest.TestCase):
         alone = fit.memory_needed(["files"], None)
         both = fit.memory_needed(["files", "vpn"], None)
         self.assertGreater(both, alone)
-        out = fit.evaluate_selection(facts, ["files", "vpn", "media"],
+        out = fit.evaluate_selection(facts, ["files", "vpn", "vault"],
                                      _real_catalog())
         self.assertEqual(out["result"], "fits")
 
