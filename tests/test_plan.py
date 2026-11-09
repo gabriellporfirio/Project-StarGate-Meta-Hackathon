@@ -162,8 +162,8 @@ class InputChecks(unittest.TestCase):
                 sleep=_no_sleep)
             self.assertEqual(code, 0)
             code, _out, _err = plan.run_plan(
-                sim="old32", services_text="files,assistant",
-                research_path=_research("old32"), send=_raising_send,
+                sim="relic", services_text="files,assistant",
+                research_path=_research("relic"), send=_raising_send,
                 sleep=_no_sleep)
             self.assertEqual(code, 7)
 
@@ -238,22 +238,22 @@ class ProvenanceKept(unittest.TestCase):
 
 
 class TwoPhones(unittest.TestCase):
-    def test_flagship_and_old32_rank_differently(self):
+    def test_flagship_and_relic_rank_differently(self):
         code_flag, out_flag, _err = plan.run_plan(
             sim="flagship", services_text="files,assistant",
             research_path=_research("flagship"), json_only=True)
         code_old, out_old, _err = plan.run_plan(
-            sim="old32", services_text="files,assistant",
-            research_path=_research("old32"), json_only=True)
+            sim="relic", services_text="files,assistant",
+            research_path=_research("relic"), json_only=True)
         self.assertEqual(code_flag, 0)
         self.assertEqual(code_old, 7)
         flagship = json.loads(out_flag)
-        old32 = json.loads(out_old)
+        relic = json.loads(out_old)
         flagship_order = [entry["id"] for entry in flagship["strategies"]]
-        old32_order = [entry["id"] for entry in old32["strategies"]]
-        self.assertNotEqual(flagship_order, old32_order)
-        self.assertEqual(old32["selection_result"], "refused")
-        self.assertTrue(old32["fit"]["reasons"])
+        relic_order = [entry["id"] for entry in relic["strategies"]]
+        self.assertNotEqual(flagship_order, relic_order)
+        self.assertEqual(relic["selection_result"], "refused")
+        self.assertTrue(relic["fit"]["reasons"])
 
 
 class ExitPrecedence(unittest.TestCase):
@@ -261,8 +261,8 @@ class ExitPrecedence(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("MODEL_API_KEY", None)
             code, stdout, _err = plan.run_plan(
-                sim="old32", services_text="files,assistant",
-                research_path=_research("old32"), explain=True,
+                sim="relic", services_text="files,assistant",
+                research_path=_research("relic"), explain=True,
                 json_only=True, sleep=_no_sleep)
         self.assertEqual(code, 7)
         report = json.loads(stdout)
@@ -415,8 +415,8 @@ class Handoff(unittest.TestCase):
 
     def test_refused_handoff_reasons_must_match(self):
         code, stdout, _err = plan.run_plan(
-            sim="old32", services_text="files",
-            research_path=_research("old32"), json_only=True)
+            sim="relic", services_text="files",
+            research_path=_research("relic"), json_only=True)
         self.assertEqual(code, 7)
         report = json.loads(stdout)
         self.assertEqual(report["selection_result"], "refused")
@@ -662,9 +662,9 @@ class CliAndSchema(unittest.TestCase):
     def test_cli_refused_exit(self):
         buf = io.StringIO()
         with redirect_stdout(buf):
-            code = cli.main(["plan", "--sim", "old32",
+            code = cli.main(["plan", "--sim", "relic",
                              "--services", "files,assistant",
-                             "--research", _research("old32")])
+                             "--research", _research("relic")])
         self.assertEqual(code, 7)
         self.assertIn("Selection result: refused", buf.getvalue())
 

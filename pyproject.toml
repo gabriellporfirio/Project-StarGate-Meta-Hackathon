@@ -17,4 +17,4 @@ stargate = "stargate.cli:main"
 packages = ["stargate", "stargate.build"]
 
 [tool.setuptools.package-data]
-stargate = ["app/*"]
+stargate = ["app/*", "app/fonts/*"]

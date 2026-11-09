@@ -46,7 +46,7 @@ STRATEGY_STATUSES = ("candidate", "blocked", "unknown", "not_covered")
 BLOCKER_KINDS = ("current", "no_official_path", "unsupported")
 CHECK_STATUSES = ("fits", "does_not_fit", "unknown", "not_needed")
 CHOICE_STATUSES = ("chosen", "unconfirmed", "refused", "unknown",
-                   "not_needed")
+                   "not_needed", "cloud_only")
 OVERALL_PROVENANCE = ("live", "replay", "synthetic")
 
 CITED_FACT_RE = re.compile(r"\bF[1-9][0-9]*\b")

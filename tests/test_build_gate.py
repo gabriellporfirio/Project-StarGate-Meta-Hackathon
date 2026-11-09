@@ -175,7 +175,7 @@ class GateExitCodes(unittest.TestCase):
         self.assertEqual(stub.calls, [])
 
     def test_refused_plan_is_7_with_reasons(self):
-        report = _real_plan("files,assistant", sim="old32")
+        report = _real_plan("files,assistant", sim="relic")
         self.assertEqual(report["selection_result"], "refused")
         path = _write_temp(report)
         try:
@@ -433,7 +433,7 @@ class ManifestBinding(unittest.TestCase):
 
 class BuildCli(unittest.TestCase):
     def test_cli_refused_plan_is_7(self):
-        bad = _real_plan("files,assistant", sim="old32")
+        bad = _real_plan("files,assistant", sim="relic")
         path = _write_temp(bad)
         self.addCleanup(os.unlink, path)
         tmp = tempfile.TemporaryDirectory()

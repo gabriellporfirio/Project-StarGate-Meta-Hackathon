@@ -33,6 +33,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from . import appsession as session_module
 from .build.image import build_id_for_plan
 from .fit import SERVICES as KNOWN_SERVICES
+from . import offers as offers_module
+from . import services as services_module
 from .plan import EXIT_REFUSED, run_plan
 from .profile import validate_profile
 from .scan import KNOWN_FIXTURES, build_profile
@@ -42,7 +44,8 @@ BIND_ADDRESS = "127.0.0.1"
 MAX_BODY = 64 * 1024
 
 CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; "
-       "img-src 'self'; connect-src 'self'; base-uri 'none'; "
+       "img-src 'self'; font-src 'self'; connect-src 'self'; "
+       "base-uri 'none'; "
        "frame-ancestors 'none'; form-action 'self'")
 
 SESSION_COOKIE = "session"
@@ -56,13 +59,19 @@ STATIC_FILES = {
     "/logo.png": ("logo-light.png", "image/png"),
     # Browsers fetch this on their own; same mark, same session gate.
     "/favicon.ico": ("logo-light.png", "image/png"),
+    # Fonts ship with the app (SIL OFL 1.1): nothing loads from the
+    # internet, so the app looks the same offline.
+    "/fonts/space-grotesk.woff2": ("fonts/space-grotesk.woff2",
+                                   "font/woff2"),
+    "/fonts/jetbrains-mono.woff2": ("fonts/jetbrains-mono.woff2",
+                                    "font/woff2"),
 }
 
 BOOT_TARGET = "Android Emulator (this demo)"
 NO_RESEARCH_MESSAGE = "No recorded research for this phone yet"
-M5_MESSAGE = "Install plan: added in Part 2"
-LIVE_MESSAGE = "Live runs: not in this part"
-PHONE_LINK_MESSAGE = "arrives when Link is joined in (platform Part 2)"
+M5_MESSAGE = "No install plan has been researched for this phone yet"
+LIVE_MESSAGE = "Live research is switched off in this build"
+PHONE_LINK_MESSAGE = "appears here once the phone is paired"
 # Saved M5 run (P5): shown only for the budget profile, only when the
 # copied file passes integrity and its recorded inputs match the app.
 M5_SAVED_REPLAY = "budget-replay-v3.json"
@@ -114,14 +123,38 @@ def real_plan(profile_name: str, services: list):
     return exit_code, plan, ""
 
 
-def preselected_services(answers: dict) -> list:
-    """Services the answers pre-select (shown checked, user confirms)."""
+def preselected_services(answers: dict, selectable=None) -> list:
+    """Services the answers pre-select (shown checked, user confirms).
+
+    When the phone's offers are known, only services it can really
+    run are pre-selected.
+    """
     want = answers.get("q1")
     if want == "files":
-        return ["files"]
-    if want == "assistant":
-        return ["assistant"]
-    return ["assistant", "files"]
+        picked = ["files"]
+    elif want == "assistant":
+        picked = ["assistant"]
+    else:
+        picked = ["assistant", "files"]
+    if selectable is not None:
+        picked = [item for item in picked if item in selectable]
+    return picked
+
+
+def real_offers(profile: dict):
+    """Offers for a scanned profile, or None when they cannot be made."""
+    from . import plan as plan_module
+    try:
+        models, _sha, _prov = plan_module.load_catalog_for_plan()
+    except plan_module.InputError:
+        return None
+    facts = profile.get("facts") if isinstance(profile, dict) else None
+    if not isinstance(facts, dict):
+        return None
+    try:
+        return offers_module.build_offers(facts, models)
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def default_out_root() -> str:
@@ -368,10 +401,18 @@ class App:
             session = self.sessions[session_id]
             record = session["record"]
             answers = record["answers"]
+            offers = real_offers(record["profile"]["data"]) \
+                if record["profile"] is not None else None
+            selectable = offers["selectable"] if offers is not None \
+                else None
             state = {
                 "profile": record["profile"],
+                "offers": offers,
+                "catalogue": services_module.public_catalogue(),
+                "fixtures": list(KNOWN_FIXTURES),
                 "answers": answers,
-                "preselected": preselected_services(answers["data"])
+                "preselected": preselected_services(
+                    answers["data"], selectable)
                 if answers is not None else None,
                 "selection": record["selection"],
                 "outputs": {
@@ -805,6 +846,12 @@ class Handler(BaseHTTPRequestHandler):
             self._json(422, {"error": "services must be a non-empty "
                                       "list of %s"
                              % ", ".join(sorted(KNOWN_SERVICES))})
+            return
+        not_built = sorted(item for item in set(services)
+                           if not services_module.is_built(item))
+        if not_built:
+            self._json(422, {"error": "not ready to build yet: %s"
+                             % ", ".join(not_built)})
             return
         with self.app.lock:
             if (session_id, "selection") in self.app.running:

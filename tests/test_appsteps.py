@@ -101,7 +101,7 @@ class ClickThroughTests(AppCase):
         # Research + M5 honesty placeholders; live disabled.
         self.assertIn("No recorded research",
                       state["outputs"]["research"]["message"])
-        self.assertIn("added in Part 2",
+        self.assertIn("No install plan has been researched",
                       state["outputs"]["m5"]["message"])
         self.assertFalse(state["live"]["enabled"])
         # Build: fresh job with real progress.
@@ -136,7 +136,7 @@ class ClickThroughTests(AppCase):
         self.assertIn(build_id, boot["steps"])
         self.assertIn("system-stargate-files-assistant.img", boot["steps"])
         # Done: what was built plus the phone-link placeholder.
-        self.assertIn("platform Part 2",
+        self.assertIn("once the phone is paired",
                       state["phone_link"]["message"])
         # No brand words in the served prose. The build output is
         # excluded: it carries package IDs and artifact file names
@@ -147,10 +147,10 @@ class ClickThroughTests(AppCase):
         prose["outputs"].pop("build", None)
         self.assertIsNone(BRAND_RE.search(json.dumps(prose)))
 
-    def test_old32_refused_plan_blocks_build_with_reason(self):
+    def test_relic_refused_plan_blocks_build_with_reason(self):
         self.start_app(build_cmd_factory=stub_factory)
         headers = self.signin()
-        state = self._flow_to_plan(headers, "old32",
+        state = self._flow_to_plan(headers, "relic",
                                    ["files", "assistant"])
         plan = state["outputs"]["plan"]
         self.assertEqual(plan["status"], "current")

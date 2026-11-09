@@ -6,15 +6,22 @@ conclusions are made, and only by this code.
 """
 from __future__ import annotations
 
-SERVICES = ("files", "assistant")
+from . import services as services_module
+
+SERVICES = services_module.SERVICE_IDS
 
 # Planning estimates (docs/fit-budgets.md); all whole bytes.
-OS_BASELINE_RAM = 1610612736
-FILES_RAM_OVERHEAD = 67108864
-ASSISTANT_RAM_OVERHEAD = 134217728
+# The baseline is for the clean system: only the chosen apps run.
+OS_BASELINE_RAM = 805306368
+FILES_RAM_OVERHEAD = services_module.get("files")["ram_overhead"]
+ASSISTANT_RAM_OVERHEAD = services_module.get("assistant")["ram_overhead"]
 RUNTIME_FACTOR = 2
-FILES_STORAGE = 209715200
-ASSISTANT_APP_STORAGE = 157286400
+FILES_STORAGE = services_module.get("files")["storage"]
+ASSISTANT_APP_STORAGE = services_module.get("assistant")["storage"]
+
+CLOUD_ONLY_REASON = (
+    "No on-phone model fits this phone, so the assistant runs through "
+    "your own cloud key only.")
 
 
 def human_bytes(count: int) -> str:
@@ -42,24 +49,22 @@ def total_model_bytes(model: dict) -> int | None:
 def memory_needed(services: list, model_bytes: int | None) -> int:
     """RAM needed in bytes for the whole selection (model may be None)."""
     needed = OS_BASELINE_RAM
-    if "files" in services:
-        needed += FILES_RAM_OVERHEAD
-    if "assistant" in services:
-        needed += ASSISTANT_RAM_OVERHEAD
-        if model_bytes is not None:
-            needed += model_bytes * RUNTIME_FACTOR
+    for service in services_module.SERVICE_IDS:
+        if service in services:
+            needed += services_module.get(service)["ram_overhead"]
+    if "assistant" in services and model_bytes is not None:
+        needed += model_bytes * RUNTIME_FACTOR
     return needed
 
 
 def storage_needed(services: list, model_bytes: int | None) -> int:
     """Storage needed in bytes for the whole selection."""
     needed = 0
-    if "files" in services:
-        needed += FILES_STORAGE
-    if "assistant" in services:
-        needed += ASSISTANT_APP_STORAGE
-        if model_bytes is not None:
-            needed += model_bytes
+    for service in services_module.SERVICE_IDS:
+        if service in services:
+            needed += services_module.get(service)["storage"]
+    if "assistant" in services and model_bytes is not None:
+        needed += model_bytes
     return needed
 
 
@@ -217,6 +222,23 @@ def evaluate_selection(facts: dict, services: list,
         chosen = next(entry for entry in evaluated
                       if entry["id"] == choice["model_id"])
         checks = list(chosen["checks"]) + [kernel]
+    elif choice["status"] == "refused":
+        # No model fits. The assistant app itself may still fit: it
+        # then answers through the user's own cloud key only.
+        cloud_checks = [
+            _size_check("memory", "resources.ram_total", facts,
+                        memory_needed(services, 0)),
+            _size_check("storage", "resources.data_free", facts,
+                        storage_needed(services, 0)),
+            kernel]
+        if all(check["status"] in ("fits", "not_needed")
+               for check in cloud_checks):
+            choice = {"status": "cloud_only", "model_id": None,
+                      "reasons": [CLOUD_ONLY_REASON]
+                      + list(choice["reasons"])}
+            checks = cloud_checks
+        else:
+            checks = [kernel]
     else:
         checks = [kernel]
     return _selection(services, checks, evaluated, choice)
@@ -248,6 +270,8 @@ def _selection(services, checks, evaluated, choice) -> dict:
     estimated = estimated or any(
         check.get("estimated") for entry in evaluated
         for check in entry["checks"])
+    if choice["status"] == "cloud_only" and result == "fits":
+        reasons = [CLOUD_ONLY_REASON]
     return {"services": list(services), "result": result,
             "estimated": estimated, "checks": checks,
             "models": evaluated, "model_choice": choice,

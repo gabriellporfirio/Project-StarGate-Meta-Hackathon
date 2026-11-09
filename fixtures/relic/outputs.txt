@@ -1,0 +1,23 @@
+SIMULATED: invented relic fixture, no real device, no real serials
+{
+  "getprop ro.product.manufacturer": {"exit": 0, "stdout": "Acme\n", "stderr": "", "timeout": false},
+  "getprop ro.product.model": {"exit": 0, "stdout": "Acme Relic\n", "stderr": "", "timeout": false},
+  "getprop ro.product.device": {"exit": 0, "stdout": "acme_r1\n", "stderr": "", "timeout": false},
+  "getprop ro.build.version.release": {"exit": 0, "stdout": "4.4\n", "stderr": "", "timeout": false},
+  "getprop ro.build.version.sdk": {"exit": 0, "stdout": "19\n", "stderr": "", "timeout": false},
+  "getprop ro.product.board": {"exit": 0, "stdout": "o32\n", "stderr": "", "timeout": false},
+  "getprop ro.boot.vbmeta.device_state": {"exit": 1, "stdout": "", "stderr": "SIMULATED: ro.boot.vbmeta.device_state has no official source; StarGate does not rely on it", "timeout": false},
+  "getprop ro.oem_unlock_supported": {"exit": 0, "stdout": "1\n", "stderr": "", "timeout": false},
+  "getprop sys.oem_unlock_allowed": {"exit": 0, "stdout": "0\n", "stderr": "", "timeout": false},
+  "getprop ro.boot.verifiedbootstate": {"exit": 0, "stdout": "green\n", "stderr": "", "timeout": false},
+  "getprop ro.build.ab_update": {"exit": 0, "stdout": "false\n", "stderr": "", "timeout": false},
+  "getprop ro.boot.dynamic_partitions": {"exit": 0, "stdout": "false\n", "stderr": "", "timeout": false},
+  "getprop ro.treble.enabled": {"exit": 0, "stdout": "false\n", "stderr": "", "timeout": false},
+  "getprop ro.vndk.version": {"exit": 0, "stdout": "", "stderr": "", "timeout": false},
+  "getprop ro.product.cpu.abilist": {"exit": 0, "stdout": "armeabi-v7a,armeabi\n", "stderr": "", "timeout": false},
+  "cat /proc/meminfo": {"exit": 0, "stdout": "MemTotal:         262144 kB\nMemFree:          200000 kB\nMemAvailable:     400000 kB\n", "stderr": "", "timeout": false},
+  "cat /proc/cpuinfo": {"exit": 0, "stdout": "processor\t: 0\nmodel name\t: ARMv7 Processor\nprocessor\t: 1\nmodel name\t: ARMv7 Processor\n", "stderr": "", "timeout": false},
+  "df /data": {"exit": 0, "stdout": "Filesystem           1K-blocks      Used Available Use% Mounted on\n/dev/block/dm-42        262144    196608     65536  75% /data\n", "stderr": "", "timeout": false},
+  "cat /proc/version": {"exit": 0, "stdout": "Linux version 3.18.140-acme-o32 (builder@acme) #1 SMP Tue Oct 28 2026\n", "stderr": "", "timeout": false},
+  "cat /proc/config.gz": {"exit": 1, "stdout": "", "stderr": "cat: /proc/config.gz: Permission denied", "timeout": false}
+}

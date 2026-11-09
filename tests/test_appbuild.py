@@ -86,7 +86,7 @@ class GateTests(unittest.TestCase):
 
     def test_refused_plan_fails_at_m4_gate(self):
         tmp, plan_path, plan = _plan_file(["files", "assistant"],
-                                          sim="old32")
+                                          sim="relic")
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         self.assertEqual(plan["selection_result"], "refused")
         job = tempfile.mkdtemp(prefix="appbuild-job-")

@@ -66,13 +66,25 @@ class ModelChoice(unittest.TestCase):
         self.assertIsNone(out["model_choice"]["model_id"])
         self.assertEqual(out["result"], "unconfirmed")
 
-    def test_all_fail_gives_refused(self):
+    def test_all_fail_gives_cloud_only_when_the_app_fits(self):
+        # No model fits, but the assistant app itself does: it runs
+        # through the user's own cloud key instead of being refused.
         models = [_model("huge", 100 * GIB),
                   _model("wrong-abi", 100_000_000, abi="riscv64")]
         out = fit.evaluate_selection(_facts(), ["files", "assistant"],
                                      models)
-        self.assertEqual(out["model_choice"]["status"], "refused")
+        self.assertEqual(out["model_choice"]["status"], "cloud_only")
         self.assertIsNone(out["model_choice"]["model_id"])
+        self.assertEqual(out["result"], "fits")
+        self.assertEqual(out["reasons"], [fit.CLOUD_ONLY_REASON])
+        self.assertIn("huge", " ".join(out["model_choice"]["reasons"]))
+
+    def test_all_fail_gives_refused_when_the_app_does_not_fit(self):
+        facts = scan.build_profile("relic")["facts"]
+        models = [_model("huge", 100 * GIB)]
+        out = fit.evaluate_selection(facts, ["files", "assistant"],
+                                     models)
+        self.assertEqual(out["model_choice"]["status"], "refused")
         self.assertEqual(out["result"], "refused")
         self.assertTrue(out["reasons"])
 
@@ -93,23 +105,43 @@ class RealFixtures(unittest.TestCase):
         self.assertEqual(out["model_choice"]["model_id"],
                          "llama-3.2-1b-instruct-spinquant-int4-eo8-pte")
 
-    def test_old32_refused_every_model_needs_64bit(self):
+    def test_old32_is_cloud_only_every_model_needs_64bit(self):
         facts = scan.build_profile("old32")["facts"]
         out = fit.evaluate_selection(facts, ["files", "assistant"],
                                      _real_catalog())
-        self.assertEqual(out["result"], "refused")
-        blob = " ".join(out["reasons"])
+        self.assertEqual(out["result"], "fits")
+        self.assertEqual(out["model_choice"]["status"], "cloud_only")
+        blob = " ".join(out["model_choice"]["reasons"])
         self.assertIn("resources.cpu_abis", blob)
         self.assertIn("arm64-v8a", blob)
 
-    def test_budget_refused_ram_below_every_need(self):
+    def test_budget_gets_the_smallest_model(self):
         facts = scan.build_profile("budget")["facts"]
         out = fit.evaluate_selection(facts, ["files", "assistant"],
                                      _real_catalog())
-        self.assertEqual(out["result"], "refused")
-        blob = " ".join(out["reasons"])
-        self.assertIn("resources.ram_total", blob)
-        self.assertIn(str(facts["resources.ram_total"]["value"]), blob)
+        self.assertEqual(out["result"], "fits")
+        self.assertEqual(out["model_choice"]["model_id"],
+                         "smollm2-135m-instruct")
+
+    def test_relic_refused_ram_below_every_need(self):
+        facts = scan.build_profile("relic")["facts"]
+        for selection in (["files"], ["files", "assistant"]):
+            out = fit.evaluate_selection(facts, selection,
+                                         _real_catalog())
+            self.assertEqual(out["result"], "refused")
+            blob = " ".join(out["reasons"])
+            self.assertIn("resources.ram_total", blob)
+            self.assertIn(str(facts["resources.ram_total"]["value"]),
+                          blob)
+
+    def test_every_catalogue_service_is_counted(self):
+        facts = scan.build_profile("flagship")["facts"]
+        alone = fit.memory_needed(["files"], None)
+        both = fit.memory_needed(["files", "vpn"], None)
+        self.assertGreater(both, alone)
+        out = fit.evaluate_selection(facts, ["files", "vpn", "media"],
+                                     _real_catalog())
+        self.assertEqual(out["result"], "fits")
 
     def test_refusal_names_both_numbers(self):
         facts = scan.build_profile("budget")["facts"]

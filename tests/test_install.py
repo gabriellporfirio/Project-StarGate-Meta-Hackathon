@@ -379,7 +379,7 @@ class InputChecks(InstallTestCase):
 
     def test_refused_plan_is_exit_7_before_any_call(self):
         profile_path, plan_path, parsed = self._plan_files(
-            "old32", "files")
+            "relic", "files")
         self.assertEqual(parsed["selection_result"], "refused")
         result = self._run(profile_path=profile_path,
                            plan_path=plan_path, replies=[])
@@ -1253,10 +1253,10 @@ class TwoProfiles(InstallTestCase):
         self.assertEqual(len(flashes), 1)
         self.assertEqual(flashes[0]["mode"], "fastbootd")
 
-    def test_old32_does_not_qualify(self):
-        _, _, parsed = self._plan_files("old32", "files")
+    def test_relic_does_not_qualify(self):
+        _, _, parsed = self._plan_files("relic", "files")
         self.assertEqual(parsed["selection_result"], "refused")
-        _, _, parsed = self._plan_files("old32", "files,assistant")
+        _, _, parsed = self._plan_files("relic", "files,assistant")
         self.assertEqual(parsed["selection_result"], "refused")
 
     def test_named_second_profile_budget(self):

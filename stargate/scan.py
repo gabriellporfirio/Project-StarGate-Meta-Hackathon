@@ -28,7 +28,7 @@ from .probe import (
 )
 from .profile import ALL_FACT_IDS, validate_profile
 
-KNOWN_FIXTURES = ("budget", "flagship", "old32", "locked")
+KNOWN_FIXTURES = ("budget", "flagship", "old32", "locked", "relic")
 
 CONFIG_SYMBOLS = {
     "kernel.config.tun": "CONFIG_TUN",

@@ -35,7 +35,8 @@ class FourFixtures(unittest.TestCase):
             exit_code, output = scan.run_scan(name, False)
             self.assertEqual(exit_code, 0)
             reports[name] = output
-        self.assertEqual(len(set(reports.values())), 4)
+        self.assertEqual(len(set(reports.values())),
+                         len(scan.KNOWN_FIXTURES))
 
     def test_budget_has_unknown_with_reason(self):
         _, output = scan.run_scan("budget", False)

@@ -544,14 +544,19 @@ class SafeRenderingTests(AppCase):
                 rest = text
                 while scheme in rest:
                     rest = rest.split(scheme, 1)[1]
+                    # The SVG namespace is a fixed identifier, never
+                    # fetched: drawings are built with createElementNS.
                     self.assertTrue(
                         rest.startswith("127.0.0.1") or
-                        rest.startswith("localhost"),
+                        rest.startswith("localhost") or
+                        rest.startswith('www.w3.org/2000/svg"'),
                         "%s: external URL %s%s"
                         % (name, scheme, rest[:40]))
             self.assertNotIn("@import", text, name)
         css = self._read("app.css")
-        self.assertNotIn("url(", css)
+        # The only url() allowed is our own bundled fonts.
+        for piece in css.split("url(")[1:]:
+            self.assertTrue(piece.startswith("/fonts/"), piece[:40])
         self.assertEqual(css.count("{"), css.count("}"))
 
     def test_model_text_served_raw_for_text_rendering(self):
