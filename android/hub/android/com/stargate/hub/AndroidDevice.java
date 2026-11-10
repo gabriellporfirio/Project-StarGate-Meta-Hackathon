@@ -3,7 +3,6 @@ package com.stargate.hub;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
@@ -53,11 +52,15 @@ final class AndroidDevice implements Device {
         return wifi != null && wifi.isWifiEnabled();
     }
 
-    /** Only a system app (the clean-system install) may switch Wi-Fi. */
+    /**
+     * Android only lets apps holding its network-settings permission
+     * switch Wi-Fi; without it the screen just shows the state.
+     */
     @Override
     public boolean canSwitchNetwork() {
-        return (app.getApplicationInfo().flags
-                & ApplicationInfo.FLAG_SYSTEM) != 0 && wifi() != null;
+        return wifi() != null && app.checkSelfPermission(
+                "android.permission.NETWORK_SETTINGS")
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override

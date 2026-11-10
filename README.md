@@ -64,6 +64,11 @@ POSTs via fetch so the request always carries the exact forwarded
 `https` origin; a refusal logs its reason (`app: refused ...`)
 without any token or cookie value.
 
+## The phone side
+
+What runs on the phone, how to build it, and what is tested: see
+[docs/phone-side.md](docs/phone-side.md).
+
 ## Models and keys
 
 The install decision uses Muse Spark (`muse-spark-1.3`,
