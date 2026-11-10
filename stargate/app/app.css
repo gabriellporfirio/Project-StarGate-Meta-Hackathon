@@ -322,3 +322,6 @@ svg { max-width: 100%; height: auto; }
   #status-line { order: 3; flex-basis: 100%; }
   #nav-next { margin-left: auto; }
 }
+
+.offer.future{opacity:.45;filter:grayscale(1)}
+.offer.future .fit{visibility:hidden}

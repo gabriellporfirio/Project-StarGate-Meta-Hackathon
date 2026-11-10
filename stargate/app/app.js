@@ -618,13 +618,16 @@ function offerCard(offer, i) {
   const head = el("div", "head");
   add(head, el("span", "t", offer.title));
   if (selectable) add(head, el("span", "tick", "✓"));
-  else add(head, el("span", "chip grey", "COMING NEXT"));
+  else add(head, el("span", "chip grey",
+    offer.future ? "FUTURE OPTION" : offer.built ? "NOT ON THIS PHONE" : "COMING NEXT"));
+  if (offer.future) card.classList.add("future");
   add(card, head);
   if (offer.kind === "advanced") {
     add(card, el("span", "chip indigo", "ADVANCED · AI MODEL"));
   }
   add(card, el("span", "s", offer.summary));
-  add(card, el("span", "h", offer.headline));
+  add(card, el("span", "h", offer.future ?
+    "Not part of this version yet." : offer.headline));
   const fit = el("div", "fit");
   add(fit, el("span", null, "Fit"),
     track(offer.score, offer.status === "limited" ? "amber" : ""),
@@ -871,7 +874,7 @@ function screenBuild(root) {
   const buildView = st.outputs.build;
   const split = el("section", "split top-align");
   const col = el("div", "col");
-  add(col, heading("Building your phone's new system",
+  add(col, heading("Building your phone's software",
     "This happens on your computer. The phone isn't touched yet."));
   add(root, add(split, col));
   if (planView.status !== "current") {
@@ -896,8 +899,8 @@ function screenBuild(root) {
   const done = buildView.status === "current" && buildView.data;
   const stages = [
     ["Check the plan", "selection " + (plan.handoff.services || []).join(", ")],
-    ["Build the apps you chose", ""],
-    ["Assemble the clean system", ""],
+    ["Build the phone app for your choices", ""],
+    ["Package it for this phone", ""],
     ["Check the result", ""]];
   stages.forEach(function (row, i) {
     const cls = done ? "done" : running ? (i === 0 ? "done" : i === 1 ? "now" : "") :
@@ -994,6 +997,17 @@ function renderBuildResult(side, data) {
     add(panel, el("span", "faint", "Limit " +
       fmtSize(summary.partition_limit_bytes) + ". " + summary.image.path));
   }
+  if (summary.app) {
+    const top = el("div", "between");
+    add(top, el("span", "muted", "Phone app"),
+      el("span", "mono", fmtSize(summary.app.bytes)));
+    add(panel, top);
+    if (summary.route_text) add(panel, el("span", "muted", summary.route_text));
+    (summary.notes || []).forEach(function (text) {
+      add(panel, el("span", "muted", text));
+    });
+    add(panel, el("span", "faint", "Saved in " + summary.folder));
+  }
   if (summary.gz) {
     add(panel, el("span", "faint", "Transfer file " + summary.gz.path + ": " +
       fmtSize(summary.gz.bytes) + "."));
@@ -1010,8 +1024,8 @@ function renderBuildResult(side, data) {
 async function screenBoot(root) {
   const st = STATE;
   const col = el("section", "col wide");
-  add(col, heading("Start it up",
-    "Target: " + st.boot_target + ". Your phone isn't changed."));
+  add(col, heading("Install it on the phone",
+    st.boot_target + ". Nothing changes on the phone until you run these steps."));
   add(root, col);
   const view = st.outputs.build;
   if (view.status !== "current") {
@@ -1028,17 +1042,19 @@ async function screenBoot(root) {
     if (STEP === "boot") render();
     return;
   }
-  add(col, note("good", "→", "Boots the system built for this phone.",
-    "Follow the steps on your computer. They check it is the exact " +
-    "system we built before starting it."));
+  add(col, note("good", "→", "Installs what was built for this phone.",
+    "Run the steps on your computer with the phone on the cable. " +
+    "The last part shows how to undo it."));
   add(col, button("ghost", "Copy the steps", function () {
     copyText(BOOT_CACHE.text);
   }));
   add(col, el("pre", "steps", BOOT_CACHE.text));
-  const real = el("div", "panel");
-  add(real, el("h3", null, "On a real phone"),
-    el("p", "muted", st.outputs.m5.message + "."));
-  add(col, real);
+  if (!(view.data && view.data.summary && view.data.summary.kind === "phone_package")) {
+    const real = el("div", "panel");
+    add(real, el("h3", null, "On a real phone"),
+      el("p", "muted", st.outputs.m5.message + "."));
+    add(col, real);
+  }
 }
 
 function copyText(text) {

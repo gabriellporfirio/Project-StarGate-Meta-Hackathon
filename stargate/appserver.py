@@ -67,7 +67,7 @@ STATIC_FILES = {
                                     "font/woff2"),
 }
 
-BOOT_TARGET = "Android Emulator (this demo)"
+BOOT_TARGET = "Your phone, over the cable"
 NO_RESEARCH_MESSAGE = "No recorded research for this phone yet"
 M5_MESSAGE = "No install plan has been researched for this phone yet"
 LIVE_MESSAGE = "Live research is switched off in this build"
@@ -84,9 +84,10 @@ M5_SAVED_OUTDATED = "Saved run is out of date for this phone or selection"
 QUESTIONS = (
     {"id": "q1",
      "text": "What do you want the phone to do?",
-     "options": (("files", "Keep my files"),
+     "options": (("files", "Keep my files and media"),
                  ("assistant", "Answer questions for me"),
-                 ("both", "Both"))},
+                 ("vault", "Keep my passwords"),
+                 ("both", "All of it"))},
     {"id": "q2",
      "text": "Show technical details on each screen?",
      "options": (("yes", "Yes"), ("no", "No"))},
@@ -187,8 +188,10 @@ def preselected_services(answers: dict, selectable=None) -> list:
         picked = ["files"]
     elif want == "assistant":
         picked = ["assistant"]
+    elif want == "vault":
+        picked = ["vault"]
     else:
-        picked = ["assistant", "files"]
+        picked = ["assistant", "files", "vault"]
     if selectable is not None:
         picked = [item for item in picked if item in selectable]
     return picked
@@ -680,6 +683,11 @@ class Handler(BaseHTTPRequestHandler):
                              "status": view["status"],
                              "message": view.get("message")})
             return
+        summary = build.get("summary") or {}
+        if summary.get("kind") == "phone_package":
+            self._json(200, {"target": BOOT_TARGET,
+                             "steps": summary.get("steps") or ""})
+            return
         from . import macsteps as macsteps_module
         try:
             steps = macsteps_module.generate(
@@ -1082,21 +1090,13 @@ class Handler(BaseHTTPRequestHandler):
 
 def default_build_command(app: App, job_dir: str,
                           build_id: str) -> list:
-    """The fresh-build command, always through the heavy-step helper."""
-    from .build import image as image_module
-    repo_root = os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__)))
+    """The build command: one phone package for this plan."""
     return [
-        app.helper_path,
         sys.executable,
-        "-m", "stargate.appbuild",
+        "-m", "stargate.phonebuild",
         "--plan", os.path.join(job_dir, "plan.json"),
         "--job-dir", job_dir,
-        "--tools-dir", app.tools_dir,
         "--expect-build-id", build_id,
-        "--assistant-apk", image_module.ASSISTANT_APK_PATH,
-        "--model-dir", image_module.MODEL_DIR,
-        "--repo", repo_root,
     ]
 
 

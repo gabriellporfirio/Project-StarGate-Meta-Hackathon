@@ -2,8 +2,9 @@
 
 One entry per service. The numbers are planning estimates (see
 docs/fit-budgets.md) until a build measures them. `built` says whether
-the phone-side app exists yet: only built services can be selected for
-a build; the others are shown as "coming next" and never promised.
+the phone-side part exists yet: only built services can be selected
+for a build. A service marked `future` is shown greyed out as a future
+option and never promised.
 
 The phone itself stays bare: its screen shows only settings and
 controls for each service. Everything you actually use (browsing
@@ -28,6 +29,7 @@ CATALOGUE = (
         "storage": 200 * MIB,
         "needs_model": False,
         "needs_route": None,
+        "future": False,
     },
     {
         "id": "assistant",
@@ -41,6 +43,7 @@ CATALOGUE = (
         "storage": 150 * MIB,
         "needs_model": True,
         "needs_route": None,
+        "future": False,
     },
     {
         "id": "vpn",
@@ -53,18 +56,21 @@ CATALOGUE = (
         "storage": 50 * MIB,
         "needs_model": False,
         "needs_route": None,
+        "future": True,
     },
     {
         "id": "vault",
         "title": "Password vault",
-        "summary": "Keep your passwords on a phone you own, locked "
-                   "with one master password.",
+        "summary": "Keep your passwords on a phone you own, sealed "
+                   "with one master password. Open them from the "
+                   "phone's page on your computer.",
         "kind": "core",
-        "built": False,
+        "built": True,
         "ram_overhead": 48 * MIB,
         "storage": 60 * MIB,
         "needs_model": False,
         "needs_route": None,
+        "future": False,
     },
 )
 

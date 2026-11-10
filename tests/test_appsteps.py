@@ -132,7 +132,7 @@ class ClickThroughTests(AppCase):
             "GET", "/api/boot", None, {"Cookie": headers["cookie"]})
         self.assertEqual(status, 200, body[:300])
         boot = json.loads(body.decode("utf-8"))
-        self.assertEqual(boot["target"], "Android Emulator (this demo)")
+        self.assertEqual(boot["target"], "Your phone, over the cable")
         self.assertIn(build_id, boot["steps"])
         self.assertIn("system-stargate-files-assistant.img", boot["steps"])
         # Done: what was built plus the phone-link placeholder.

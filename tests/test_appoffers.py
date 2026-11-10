@@ -58,7 +58,7 @@ class OffersInTheApp(AppCase):
         self.assertEqual(status, 200)
         state = json.loads(body.decode("utf-8"))["state"]
         self.assertEqual(sorted(state["preselected"]),
-                         ["assistant", "files"])
+                         ["assistant", "files", "vault"])
 
     def test_services_that_are_not_built_cannot_be_selected(self):
         self._connect("flagship")

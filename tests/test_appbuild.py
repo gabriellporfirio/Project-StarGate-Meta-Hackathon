@@ -215,20 +215,16 @@ class FreshFlowTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertTrue(result["reason"])
 
-    def test_default_command_goes_through_helper(self):
+    def test_default_command_builds_the_phone_package(self):
         from stargate import appserver as server_module
         app = server_module.App(port=0, out_root="/tmp/o",
-                                tools_dir="/tmp/t",
-                                helper_path="/tmp/h/ahead-heavy.sh")
+                                tools_dir="/tmp/t")
         command = server_module.default_build_command(app, "/tmp/o/b",
                                                       "b")
-        self.assertEqual(command[0], "/tmp/h/ahead-heavy.sh")
-        self.assertIn("stargate.appbuild", command)
+        self.assertIn("stargate.phonebuild", command)
         self.assertIn("/tmp/o/b/plan.json", command)
-        self.assertNotIn("/workspaces/m4a-tools/out/stargate-launcher.apk",
-                         command)
-        self.assertNotIn("/workspaces/m4a-tools/out/stargate-files.apk",
-                         command)
+        self.assertFalse([part for part in command
+                          if part.startswith("/workspaces")])
 
 
 if __name__ == "__main__":
