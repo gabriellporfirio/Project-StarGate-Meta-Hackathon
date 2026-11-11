@@ -21,7 +21,7 @@ your computer. A phone is refused only when nothing at all can run on it.
 
 This started as a Meta hackathon project (submitted 5 November 2026)
 and has been extended since. The submitted version is kept under the
-tag `hackathon-submission`.
+branch `hackathon-submission`.
 
 ## Try it
 
