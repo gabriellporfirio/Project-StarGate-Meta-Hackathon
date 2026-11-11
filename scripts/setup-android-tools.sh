@@ -13,7 +13,9 @@ TOOLS="$HOME/.stargate/tools"
 mkdir -p "$TOOLS"
 SUDO=""
 [ "$(id -u)" = "0" ] || SUDO="sudo"
-$SUDO apt-get update -qq
+# A broken extra package source (Codespaces ships one for yarn with an
+# expired key) must not stop the install: the main sources still refresh.
+$SUDO apt-get update -qq || echo "Some package sources failed to refresh; carrying on."
 $SUDO apt-get install -y -qq default-jdk-headless aapt apksigner zipalign unzip curl
 get() {
   [ -s "$2" ] || curl -fsSL -o "$2" "$1"
