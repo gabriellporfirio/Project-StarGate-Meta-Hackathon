@@ -20,6 +20,7 @@ from unittest import mock
 
 from stargate import cli, fetch, install, meta, plan, probe, scan
 from tests import procguard
+from tests import workspace
 
 REPO = Path(__file__).resolve().parent.parent
 EXAMPLES = REPO / "schemas" / "install-examples"
@@ -3192,6 +3193,7 @@ class Fix5wSyntheticExamples(InstallTestCase):
                 "%s should be rejected: %s" % (bad_key, errors))
 
 
+@workspace.needs_run_scripts
 class Fix5yLauncher(InstallTestCase):
     """5y: one guarded v4 script, launcher cap proven offline.
 

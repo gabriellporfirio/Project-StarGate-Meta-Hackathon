@@ -17,6 +17,7 @@ from pathlib import Path
 
 from stargate import plan
 from stargate.build import checks
+from tests import workspace
 
 ANDROID_JAR = ("/workspaces/m4-tools/android-sdk/platforms/android-34/"
                "android.jar")
@@ -86,6 +87,7 @@ def _apks(packages, assets_by_package=None):
 
 
 class ApkReading(unittest.TestCase):
+    @workspace.needs_built_apps
     def test_package_read_from_inside_apk(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "misleading-name.apk")
@@ -93,6 +95,7 @@ class ApkReading(unittest.TestCase):
             package, _version = checks.apk_package(out)
         self.assertEqual(package, "com.stargate.files")
 
+    @workspace.needs_built_apps
     def test_permissions_read_from_inside_apk(self):
         with tempfile.TemporaryDirectory() as tmp:
             plain = os.path.join(tmp, "plain.apk")
@@ -104,6 +107,7 @@ class ApkReading(unittest.TestCase):
             self.assertEqual(checks.apk_permissions(net),
                              ["android.permission.INTERNET"])
 
+    @workspace.needs_built_apps
     def test_assets_listed(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "a.apk")
@@ -145,6 +149,7 @@ class AssistantPackageFromManifest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     checks.assistant_package_from_manifest(bad)
 
+    @workspace.needs_built_apps
     def test_distinct_package_passes_end_to_end(self):
         package = checks.assistant_package_from_manifest(
             {"assistant_apk": {
@@ -188,6 +193,7 @@ class SelectionChecks(unittest.TestCase):
             checks.expected_packages_for_selection(
                 ["files", "assistant"])
 
+    @workspace.needs_built_apps
     def test_files_only_passes(self):
         tmp, paths = _apks(["com.stargate.launcher",
                             "com.stargate.files"])
@@ -197,6 +203,7 @@ class SelectionChecks(unittest.TestCase):
         finally:
             tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_assistant_only_has_no_files(self):
         tmp, paths = _apks(["com.stargate.launcher",
                             "com.stargate.assistant"])
@@ -213,6 +220,7 @@ class SelectionChecks(unittest.TestCase):
         finally:
             tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_unselected_app_fails(self):
         tmp, paths = _apks(["com.stargate.launcher",
                             "com.stargate.files",
@@ -229,6 +237,7 @@ class SelectionChecks(unittest.TestCase):
         finally:
             tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_missing_app_fails(self):
         tmp, paths = _apks(["com.stargate.launcher",
                             "com.stargate.files"])
@@ -258,6 +267,7 @@ class ModelFileChecks(unittest.TestCase):
                 handle.write(data)
         return tmp, model_dir
 
+    @workspace.needs_built_apps
     def test_clean_files_only_passes(self):
         apk_tmp, paths = _apks(["com.stargate.launcher",
                                 "com.stargate.files"])
@@ -273,6 +283,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_model_file_in_folder_fails_without_assistant(self):
         apk_tmp, paths = _apks(["com.stargate.launcher",
                                 "com.stargate.files"])
@@ -287,6 +298,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_model_file_hidden_in_assets_fails(self):
         apk_tmp, paths = _apks(
             ["com.stargate.launcher", "com.stargate.files"],
@@ -302,6 +314,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_matching_model_files_pass(self):
         data = b"model-bytes-12"
         expected = [{"name": "model.pte", "bytes": len(data),
@@ -318,6 +331,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_same_size_different_content_fails(self):
         expected = [{"name": "model.pte", "bytes": 4,
                      "sha256": _sha(b"good")}]
@@ -336,6 +350,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_missing_and_extra_model_files_fail(self):
         expected = [{"name": "model.pte", "bytes": 4,
                      "sha256": _sha(b"good")}]
@@ -368,6 +383,7 @@ class ModelFileChecks(unittest.TestCase):
             apk_tmp.cleanup()
             model_tmp.cleanup()
 
+    @workspace.needs_built_apps
     def test_contents_checks_exit_8(self):
         apk_tmp, paths = _apks(["com.stargate.launcher",
                                 "com.stargate.files",

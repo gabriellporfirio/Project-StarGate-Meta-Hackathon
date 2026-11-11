@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the phone app build tools
+        run: sh scripts/setup-android-tools.sh
+      - name: Show which build tools were found
+        run: python3 -m stargate.build.hubapk --doctor
+      - name: Run all tests
+        run: python3 -m unittest discover -s tests -t .
+      - name: Build the phone app
+        run: python3 -m stargate.build.hubapk --out out/hub

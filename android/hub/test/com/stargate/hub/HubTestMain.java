@@ -247,10 +247,10 @@ public final class HubTestMain {
         check("cloud without key fails plainly", post("/api/assistant/ask",
                 sid, "{\"question\":\"hi\"}").status == 502);
         Reply key = post("/api/assistant/key", sid,
-                "{\"key\":\"sk-test-1234567890\"}");
+                "{\"key\":\"example-key-1234567890\"}");
         check("key saved and never echoed", key.status == 200
                 && key.text().contains("\"key_set\":true")
-                && !key.text().contains("sk-test"));
+                && !key.text().contains("example-key"));
         check("cloud answers", post("/api/assistant/ask", sid,
                 "{\"question\":\"hi\"}").status == 200);
         check("network off", post("/api/device", screen,

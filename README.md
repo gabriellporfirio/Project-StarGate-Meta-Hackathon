@@ -1,43 +1,79 @@
 # StarGate
-Turns old Android phones into private home servers. Meta hackathon project.
 
-StarGate inspects an old Android phone, researches what community
-software supports it, and drafts a plan to turn it into a small
-private server (file storage plus an on-device assistant) instead of
-landfill.
+[![Tests](https://github.com/gabriellporfirio/Project-StarGate-Meta-Hackathon/actions/workflows/tests.yml/badge.svg)](https://github.com/gabriellporfirio/Project-StarGate-Meta-Hackathon/actions/workflows/tests.yml)
 
-## Demo scope
+Turns old Android phones into private home servers, instead of landfill.
 
-The demo uses SIMULATED phone profiles (fixtures, every value
-labelled SIMULATED) and the Android Emulator. No real handset is
-flashed: plans only ever allow `emulator_only` builds
-(`stargate/plan.py:43`), and real-device access raises instead of
-running (`stargate/probe.py:265`).
+You plug in an old phone, a guided app on your computer checks what it
+can honestly run, you pick the services you want, and it builds the
+phone's software for exactly those choices:
 
-## Demo commands
+| Service | What you get |
+| --- | --- |
+| Files and media | Your photos, documents, music and video kept on the phone |
+| AI assistant | Ask questions in plain words, on the phone's own model or through your own cloud key |
+| Password vault | Your passwords sealed with one master password |
+| Private VPN | Not built yet (shown greyed out as a future option) |
+
+The phone itself stays bare: its screen shows only settings and
+controls. Everything you actually use opens from the phone's page on
+your computer. A phone is refused only when nothing at all can run on it.
+
+This started as a Meta hackathon project (submitted 5 November 2026)
+and has been extended since. The submitted version is kept under the
+tag `hackathon-submission`.
+
+## Try it
+
+The quickest way needs no phone and nothing installed on your
+computer: open the repository in a GitHub Codespace (green **Code**
+button, **Codespaces**, **Create codespace**), then in its terminal:
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install -e .
-.venv/bin/stargate doctor
-.venv/bin/stargate scan --sim flagship
-.venv/bin/stargate plan --sim flagship --services files \
-  --research fixtures/research/flagship.json
-.venv/bin/stargate install-plan --sim flagship
+sh scripts/setup-android-tools.sh
+python3 -m stargate app --port 8770 --forwarded-host \
+  "$CODESPACE_NAME-8770.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"
 ```
 
-Sources: `stargate/cli.py:27` (doctor), `stargate/cli.py:31`
-(scan, sims at `stargate/cli.py:37`), `stargate/cli.py:55` (plan),
-`stargate/cli.py:65` (build, needs `--plan` and `--out`),
-`stargate/cli.py:71` (install-plan).
+Open the `https://` start link it prints and press Sign in. Pick one
+of the example phones, answer two questions, choose services and
+press Build.
 
-`MODEL_API_KEY` comes from the environment only and is never written to a file.
-See `docs/decisions.md` for the M0 record.
+On your own Debian or Ubuntu computer it is the same, with a shorter
+command (`python3 -m stargate app --port 8770`, then open the
+`http://127.0.0.1` link). It needs Python 3.12 or newer and nothing
+else from Python: standard library only. The setup script installs the
+few command-line tools the phone app is built with; everything up to
+the Build step works without it.
 
-## How to run the platform app
+## Run the tests
+
+```sh
+python3 -m unittest discover -s tests -t .
+```
+
+The same command runs on GitHub for every push (the badge above).
+Some older tests need the original hackathon build workspace (tools
+and built apps that were never part of this repository); anywhere
+else they are reported as skipped, with that reason.
+
+## What is tested, and what is not
+
+The phone's software has been built and checked on a computer only.
+It has **not yet run on a real phone**. The honest list of what has
+and has not been tried is in [docs/phone-side.md](docs/phone-side.md).
+Do not use it on a phone you depend on.
+
+## The phone side
+
+What runs on the phone, how it is built, and the two install routes
+(keep the phone's Android and take it over, or a clean system): see
+[docs/phone-side.md](docs/phone-side.md).
+
+## More on the platform app
 
 `stargate app` starts the guided journey on the computer: nine steps
-from Welcome to Done, calling M1 (scan), M3 (plan) and M4 (build).
+from Welcome to Done, from scanning the phone to building its software.
 Standard library only. Full rules in `docs/app.md`.
 
 ```sh
@@ -64,10 +100,23 @@ POSTs via fetch so the request always carries the exact forwarded
 `https` origin; a refusal logs its reason (`app: refused ...`)
 without any token or cookie value.
 
-## The phone side
+## The hackathon version
 
-What runs on the phone, how to build it, and what is tested: see
-[docs/phone-side.md](docs/phone-side.md).
+The submitted demo used simulated phone profiles and the Android
+Emulator, with these commands (they still work):
+
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -e .
+.venv/bin/stargate doctor
+.venv/bin/stargate scan --sim flagship
+.venv/bin/stargate plan --sim flagship --services files \
+  --research fixtures/research/flagship.json
+.venv/bin/stargate install-plan --sim flagship
+```
+
+`MODEL_API_KEY` comes from the environment only and is never written
+to a file. See `docs/decisions.md` for the early decisions.
 
 ## Models and keys
 
@@ -78,13 +127,12 @@ optional cloud mode uses Muse Spark Open on Baseten
 `stargate/m4c.py:28-37`). Users bring their own key
 (`stargate/m4c.py:7`).
 
-[PENDING: proof] Tonight's live M5 install decision for the demo
-phone. [PENDING: proof] Tonight's live cloud answer from the
-Assistant.
-
 ## Credits and licence
 
-Meta's Muse Code CLI wrote the product code. People are listed in
-`CREDITS.md`. The project's original code is MIT-licensed (see
+During the hackathon, Meta's Muse Code CLI wrote the product code.
+Work after the hackathon (the git history from 9 November 2026: the
+phone app, the password vault, the redesigned platform and the build
+steps for real phones) was written with Claude Code. People are listed
+in `CREDITS.md`. The project's original code is MIT-licensed (see
 `LICENSE`). Bundled third-party material keeps its own licence (see
 `third_party/NOTICES.md`); the root MIT file does not relicense it.

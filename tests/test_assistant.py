@@ -12,6 +12,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from tests import workspace
 
 REPO = Path(__file__).resolve().parent.parent
 MANIFEST = REPO / "assistant-manifest.json"
@@ -100,6 +101,7 @@ def check_binding(manifest: dict, handoff_model: dict) -> list:
 
 
 class ApkContents(unittest.TestCase):
+    @workspace.needs_built_apps
     def test_no_network_permission_in_apk(self):
         with zipfile.ZipFile(APK) as apk:
             blob = apk.read("AndroidManifest.xml")
@@ -109,6 +111,7 @@ class ApkContents(unittest.TestCase):
         self.assertNotIn(b"uses-permission", text)
         self.assertNotIn(b"INTERNET", text)
 
+    @workspace.needs_built_apps
     def test_no_model_file_in_apk(self):
         with zipfile.ZipFile(APK) as apk:
             names = apk.namelist()
@@ -129,11 +132,13 @@ class ApkContents(unittest.TestCase):
             model_files_in_apk(["assets/tokenizer.model"]),
             ["assets/tokenizer.model"])
 
+    @workspace.needs_built_apps
     def test_licenses_asset_matches_notices(self):
         with zipfile.ZipFile(APK) as apk:
             blob = apk.read("assets/licenses.txt")
         self.assertEqual(blob, NOTICES.read_bytes())
 
+    @workspace.needs_built_apps
     def test_native_libs_for_both_abis(self):
         with zipfile.ZipFile(APK) as apk:
             names = set(apk.namelist())
@@ -143,6 +148,7 @@ class ApkContents(unittest.TestCase):
                 self.assertIn("lib/%s/%s" % (abi, lib), names)
 
 
+@workspace.needs_built_apps
 class HashCheck(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -213,6 +219,7 @@ class ManifestBinding(unittest.TestCase):
         del mutated["files"][1]["sha256"]
         self.assertTrue(check_binding(mutated, handoff_model))
 
+    @workspace.needs_built_apps
     def test_apk_fields_match_built_apk(self):
         manifest = _load_json(MANIFEST)
         apk = manifest["assistant_apk"]
@@ -227,6 +234,7 @@ class ManifestBinding(unittest.TestCase):
                 digest.update(chunk)
         self.assertEqual(apk["sha256"], digest.hexdigest())
 
+    @workspace.needs_built_apps
     def test_dependencies_match_downloads(self):
         manifest = _load_json(MANIFEST)
         deps = manifest["dependencies"]
@@ -267,6 +275,7 @@ EXPECTED_PROMPT = (
     "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n")
 
 
+@workspace.needs_built_apps
 class Fixup3Host(unittest.TestCase):
     """Fixup 3 pure-Java logic, run on a host JVM like ManifestVerifier."""
 
@@ -545,6 +554,7 @@ public class FakeAsk {
 """
 
 
+@workspace.needs_built_apps
 class Fixup4Host(unittest.TestCase):
     """Fixup 4 pure-Java logic, run on a host JVM like Fixup3Host."""
 

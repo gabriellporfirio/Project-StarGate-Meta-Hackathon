@@ -17,6 +17,7 @@ from pathlib import Path
 
 from stargate import m4c
 from tests.test_assistant import JAVAC, JAVA
+from tests import workspace
 
 REPO = Path(__file__).resolve().parent.parent
 M4B_TOOLS = Path(os.environ.get(
@@ -1545,6 +1546,7 @@ public class FakeCloud {
 """
 
 
+@workspace.needs_built_apps
 class M4cHost(unittest.TestCase):
     """M4c app logic on a host JVM, with fakes, offline."""
 
@@ -2530,6 +2532,7 @@ def _xmltree(apk, asset):
     return done.stdout
 
 
+@workspace.needs_built_apps
 class M4cApk(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

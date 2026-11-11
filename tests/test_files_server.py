@@ -18,6 +18,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from tests import workspace
 
 REPO = Path(__file__).resolve().parent.parent
 HANDLER = (REPO / "android" / "common" / "java" / "com" / "stargate"
@@ -28,6 +29,7 @@ JAVAC = "/workspaces/m4-tools/jdk-17/bin/javac"
 JAVA = "/workspaces/m4-tools/jdk-17/bin/java"
 
 
+@workspace.needs_build_tools
 class FilesServerHost(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
