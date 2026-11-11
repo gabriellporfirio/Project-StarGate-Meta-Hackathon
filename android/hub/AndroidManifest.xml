@@ -43,11 +43,7 @@
         <service
             android:name="com.stargate.hub.HubService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the phone's own local services (files, assistant, password vault) answering over the cable while the screen is off." />
-        </service>
+            android:foregroundServiceType="specialUse" />
         <receiver
             android:name="com.stargate.hub.BootReceiver"
             android:exported="true">
